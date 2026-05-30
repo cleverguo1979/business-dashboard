@@ -1,0 +1,24 @@
+/* 应用级样式 - 布局微调使用 Ant Design，此处仅做必要的覆盖 */
+
+/* 卡片 hover 效果 */
+.ant-card {
+  transition: box-shadow 0.3s;
+}
+
+.ant-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+}
+
+/* 图表容器 */
+.chart-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* 数据预览优化 */
+.preview-table .ant-table-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
