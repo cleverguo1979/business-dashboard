@@ -288,7 +288,7 @@ const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
       </Row>
 
       {/* 饼图 + 委托企业去重排行 + 问询 */}
-      <Row gutter={[14, 14]} style={{ marginBottom: 12 }}>
+      <Row gutter={[12,12]} style={{ marginBottom: 12 }}>
         <Col xs={24} lg={8}>
           <Card title="进出口分布" size="small" style={{ height: 390 }}>
             <ReactECharts option={pieOption} style={{ height: 340 }} />
@@ -309,7 +309,7 @@ const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
       </Row>
 
       {/* 境内收发货人 + 异常排行 */}
-      <Row gutter={[14, 14]} style={{ marginBottom: 12 }}>
+      <Row gutter={[12,12]} style={{ marginBottom: 12 }}>
         <Col xs={24} lg={12}>
           <Card title={<Space><TrophyOutlined style={{ color: '#fa8c16' }} />境内收发货人 业务量 TOP20</Space>} size="small">
             <Table dataSource={shipperRank.slice(0, 20)} rowKey="name" size="small" pagination={{ pageSize: 10, size: 'small' }}
@@ -340,7 +340,7 @@ const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
       </Card>
 
       {/* 维度二+三 */}
-      <Row gutter={[14, 14]} style={{ marginBottom: 12 }}>
+      <Row gutter={[12,12]} style={{ marginBottom: 12 }}>
         <Col xs={24} lg={12}>
           <Card title={<Space><ClockCircleOutlined />接单耗时</Space>} extra={<Tag color="green">下单→接单</Tag>}>
             <ReactECharts option={acceptChart} style={{ height: 220 }} />
@@ -358,7 +358,7 @@ const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
       </Row>
 
       {/* 17:00后 + 高并发 */}
-      <Row gutter={[14, 14]}>
+      <Row gutter={[12,12]}>
         <Col xs={24} lg={12}>
           <Card title={<Space><WarningOutlined style={{ color: '#f5222d' }} />17:00后下单 {pre.after17Count}单 ({pct(pre.after17Count, total)}%)</Space>}
             extra={<Space><Radio.Group value={after17Mode} onChange={e => setAfter17Mode(e.target.value)} optionType="button" buttonStyle="solid" size="small"><Radio.Button value="all">全部</Radio.Button><Radio.Button value="daily">按日</Radio.Button></Radio.Group>{after17Mode === 'daily' && <Select size="small" style={{ width: 130 }} value={after17Date} onChange={setAfter17Date} options={pre.after17AvailableDates.map(d => ({ label: d, value: d }))} />}</Space>}

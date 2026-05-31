@@ -193,36 +193,36 @@ export const OverviewPage: React.FC = () => {
         <Space><span style={{fontWeight:600,fontSize:15}}>标准化业务报关单 月度横向对比</span><Tag color="blue">{dataSets.length} 个月份</Tag></Space>
       </Card>
 
-      <Card title={<Space><BarChartOutlined/>标准化业务月度总量</Space>} size="small" style={{marginBottom:10}}>
+      <Card title={<Space><BarChartOutlined/>标准化业务月度总量</Space>} size="small" style={{marginBottom:12}}>
         <ReactECharts option={volChart} style={{height:250}}/>
       </Card>
 
-      <Card title={<Space><BarChartOutlined/>委托企业 跨月总委托量 TOP10</Space>} size="small" style={{marginBottom:10}}>
+      <Card title={<Space><BarChartOutlined/>委托企业 跨月总委托量 TOP10</Space>} size="small" style={{marginBottom:12}}>
         <ReactECharts option={entrustTop10Chart} style={{height: 280}}/>
       </Card>
 
-      <Card title={<Space><BarChartOutlined/>委托企业月度委托量（单选查看）</Space>} size="small" style={{marginBottom:10}}
+      <Card title={<Space><BarChartOutlined/>委托企业月度委托量（单选查看）</Space>} size="small" style={{marginBottom:12}}
         extra={<Select size="small" style={{width:240}} value={selectedEntrust||undefined} placeholder="选择一家委托企业" showSearch optionFilterProp="label" onChange={v=>setSelectedEntrust(v)} options={allEntrusts.map(e=>({label:e,value:e}))}/>}>
         {selectedEntrust ? <ReactECharts option={entChart} style={{height:250}}/> : <Empty description="请选择一家委托企业" style={{padding:30}}/>}
       </Card>
 
       {/* 进出口接单耗时 2x2 */}
-      <Card title={<Space><ClockCircleOutlined/>平均接单耗时（进出口拆分）</Space>} size="small" style={{marginBottom:10}}>
-        <Row gutter={[10,10]}>
+      <Card title={<Space><ClockCircleOutlined/>平均接单耗时（进出口拆分）</Space>} size="small" style={{marginBottom:12}}>
+        <Row gutter={[12,12]}>
           <Col xs={24} lg={12}><Card size="small" title={<span><ExportOutlined style={{color:C[0]}}/> 出口</span>}><ReactECharts option={expAcceptOpt} style={{height:250}}/></Card></Col>
           <Col xs={24} lg={12}><Card size="small" title={<span><ImportOutlined style={{color:C[2]}}/> 进口</span>}><ReactECharts option={impAcceptOpt} style={{height:250}}/></Card></Col>
         </Row>
       </Card>
 
       {/* 进出口制单时长 2x2 */}
-      <Card title={<Space><ClockCircleOutlined/>平均制单时长（进出口拆分）</Space>} size="small" style={{marginBottom:10}}>
-        <Row gutter={[10,10]}>
+      <Card title={<Space><ClockCircleOutlined/>平均制单时长（进出口拆分）</Space>} size="small" style={{marginBottom:12}}>
+        <Row gutter={[12,12]}>
           <Col xs={24} lg={12}><Card size="small" title={<span><ExportOutlined style={{color:C[3]}}/> 出口</span>}><ReactECharts option={expDocOpt} style={{height:250}}/></Card></Col>
           <Col xs={24} lg={12}><Card size="small" title={<span><ImportOutlined style={{color:C[4]}}/> 进口</span>}><ReactECharts option={impDocOpt} style={{height:250}}/></Card></Col>
         </Row>
       </Card>
 
-      <Row gutter={[10,10]}>
+      <Row gutter={[12,12]}>
         <Col xs={24} lg={12}>
           <Card title={<Space><AlertOutlined style={{color:'#fa8c16'}}/>跨日制单</Space>} size="small">
             <ReactECharts option={crossChart} style={{height:250}}/>
@@ -238,7 +238,7 @@ export const OverviewPage: React.FC = () => {
       {/* ==================== 智能风控分析 ==================== */}
       <Card
         size="small"
-        style={{ marginTop: 10, marginBottom: 10, borderLeft: '4px solid #722ed1' }}
+        style={{ marginTop: 0, marginBottom: 12, borderLeft: '4px solid #722ed1' }}
         title={
           <Space>
             <SafetyOutlined style={{ color: '#722ed1' }} />
@@ -252,7 +252,7 @@ export const OverviewPage: React.FC = () => {
         }
       >
         {/* 风控洞察面板 */}
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 12 }}>
           {riskInsights.map((insight, idx) => {
             const iconMap: Record<string, React.ReactNode> = {
               error: <WarningOutlined />,
@@ -275,7 +275,7 @@ export const OverviewPage: React.FC = () => {
         </div>
 
         {/* 风险指标概览卡片 */}
-        <Row gutter={[10, 10]} style={{ marginBottom: 16 }}>
+        <Row gutter={[12,12]} style={{ marginBottom: 12 }}>
           <Col xs={12} sm={6}>
             <Card size="small" style={{ background: '#fff7e6', borderColor: '#ffa940' }}>
               <div style={{ textAlign: 'center' }}>

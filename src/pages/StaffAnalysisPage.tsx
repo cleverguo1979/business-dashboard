@@ -185,7 +185,7 @@ export const StaffAnalysisPage: React.FC = () => {
         <Space><span style={{fontWeight:600,fontSize:15}}><TeamOutlined/> 制单员分析</span><Tag color="blue">{staffList.length} 人</Tag><Tag color="green">基于 {monthCount} 个月数据</Tag></Space>
       </Card>
 
-      <Row gutter={[10,10]} style={{marginBottom:12}}>
+      <Row gutter={[12,12]} style={{marginBottom:12}}>
         <Col xs={12} sm={3}><Card size="small"><Statistic title="涉及标准化业务的制单员总数" value={staffList.length} suffix="人" prefix={<TeamOutlined/>} valueStyle={{color:C[0],fontWeight:700,fontSize:20}}/></Card></Col>
         <Col xs={12} sm={3}><Card size="small"><Statistic title="标准化报关单量" value={totalOrders} suffix="单" prefix={<BarChartOutlined/>} valueStyle={{color:C[0]}}/></Card></Col>
         <Col xs={12} sm={3}><Card size="small"><Statistic title="月人均单量" value={monthCount>0?Math.round(avgPerPerson/monthCount):0} suffix={`单/月`} prefix={<TrophyOutlined/>}/></Card></Col>
@@ -206,7 +206,7 @@ export const StaffAnalysisPage: React.FC = () => {
         </Col>
       </Row>
 
-      <Row gutter={[14,14]} style={{marginBottom:12}}>
+      <Row gutter={[12,12]} style={{marginBottom:12}}>
         <Col xs={24} lg={14}>
           <Card title={<span style={{fontSize:13}}><TrophyOutlined style={{color:C[3],marginRight:4}}/>制单员工作量 TOP10 <span style={{fontWeight:400,color:'#999',fontSize:11}}>（基于{monthCount}个月）</span></span>} size="small" style={{height:440}}>
             <ReactECharts option={top10Chart} style={{height:330}}/>
@@ -237,7 +237,7 @@ export const StaffAnalysisPage: React.FC = () => {
         {selectedProfile ? (
           <div>
             <ReactECharts option={selectedMonthlyChart} style={{height:280}}/>
-            <Row gutter={[10,10]} style={{marginTop:12}}>
+            <Row gutter={[12,12]} style={{marginTop:12}}>
               {(()=>{
                 const s=selectedProfile;
                 const avgFull=s.docPrepCount>0?fmtSec(s.docPrepSum/s.docPrepCount):'-';
