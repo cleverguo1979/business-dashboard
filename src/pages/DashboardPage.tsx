@@ -2,7 +2,7 @@
  * 标准化业务数据看板
  */
 import React, { useMemo, useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Table, Select, Tag, Space, Empty, Button, Spin, Radio, Tooltip } from 'antd';
+import { Card, Row, Col, Statistic, Table, Select, Tag, Space, Empty, Button, Spin, Radio, Tooltip, message } from 'antd';
 import {
   ClockCircleOutlined, ThunderboltOutlined, BarChartOutlined,
   WarningOutlined, ReloadOutlined, FileTextOutlined, AlertOutlined,
@@ -85,11 +85,11 @@ export const DashboardPage: React.FC = () => {
         const m = fileName.match(/(\d{2})\.csv$/)?.[1] || '';
         try {
           const resp = await fetch(base + fileName + '.enc');
-          if (!resp.ok) continue;
+          if (!resp.ok) { console.warn('Fetch failed:', fileName, resp.status); continue; }
           const buf = await resp.arrayBuffer();
           const text = await decryptCSV(buf, pass);
           const lines = text.split('\n').filter(l => l.trim());
-          if (lines.length < 2) continue;
+          if (lines.length < 2) { console.warn('Empty data:', fileName); continue; }
           const headers = parseCSVLine(lines[0]);
           const records: Record<string, any>[] = [];
           for (let i = 1; i < lines.length; i++) {
@@ -100,9 +100,11 @@ export const DashboardPage: React.FC = () => {
           }
           importData(`${year}-${m}`, fileName, records);
           loadedCount++;
-        } catch { /* 该月份无文件 */ }
+          console.log('Loaded:', fileName, records.length, 'rows');
+        } catch (e) { console.error('Load error:', fileName, e); }
       }
 
+      message.success(`成功加载 ${loadedCount}/5 个月份数据`);
       if (loadedCount > 0) {
         createDimensionsFromColumns([
           { key: '业务下单时间', label: '业务下单时间', type: 'string' as const },
