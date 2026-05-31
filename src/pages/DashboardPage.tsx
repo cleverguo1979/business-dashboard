@@ -72,7 +72,7 @@ export const DashboardPage: React.FC = () => {
   const handleLoad = React.useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await fetch('/工作效率统计报表.csv');
+      const resp = await fetch(import.meta.env.BASE_URL + '工作效率统计报表.csv');
       const text = await resp.text();
       const lines = text.split('\n').filter(l => l.trim());
       if (lines.length < 2) return;
