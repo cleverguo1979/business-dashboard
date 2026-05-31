@@ -88,7 +88,7 @@ export const DashboardPage: React.FC = () => {
       let downloadedBytes = 0;
       const results = [];
       for (const fileName of availableFiles) {
-        const m = fileName.match(/(d{2}).csv$/)?.[1] || '';
+        const m = fileName.match(/(\d{2})\.csv$/)?.[1] || '';
         try {
           const resp = await fetch(base + fileName + '.enc');
           if (!resp.ok) throw new Error('HTTP ' + resp.status);
