@@ -79,6 +79,21 @@ export const OverviewPage: React.FC = () => {
   const allEntrusts = useMemo(()=>{ const set=new Set<string>(); monthSlots.forEach(s=>s.entrustCounts.forEach((_,k)=>set.add(k))); return [...set].sort(); },[monthSlots]);
   const selectedEntrustData = useMemo(()=>!selectedEntrust?[]:monthSlots.map(s=>s.hasData?(s.entrustCounts.get(selectedEntrust)||0):null),[monthSlots,selectedEntrust]);
 
+  // TOP10 委托企业（跨月总委托量排名）
+  const entrustTop10 = useMemo(() => {
+    const totals = new Map<string,number>();
+    monthSlots.forEach(s => s.entrustCounts.forEach((c, name) => totals.set(name, (totals.get(name)||0)+c)));
+    return [...totals.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+  }, [monthSlots]);
+  const entrustTop10Chart = useMemo(():EChartsOption => ({
+    color: [C[1]],
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: 140, right: 50, top: 5, bottom: 20 },
+    xAxis: { type: 'value', name: '委托量' },
+    yAxis: { type: 'category', data: entrustTop10.map(e => e[0]).reverse(), axisLabel: { fontSize: 10, width: 130, overflow: 'truncate' }, inverse: true },
+    series: [{ type: 'bar', data: entrustTop10.map(e => e[1]).reverse(), itemStyle: { borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', fontSize: 11 } }],
+  }), [entrustTop10]);
+
   const nullIf = (has:boolean, v:number)=>has?v:null;
 
   // 图1：标准化业务报关单月度总量
@@ -137,8 +152,12 @@ export const OverviewPage: React.FC = () => {
         <ReactECharts option={volChart} style={{height:250}}/>
       </Card>
 
-      <Card title={<Space><BarChartOutlined/>委托企业月度委托量</Space>} size="small" style={{marginBottom:10}}
-        extra={<Select size="small" style={{width:240}} value={selectedEntrust||undefined} placeholder="选择委托企业" showSearch optionFilterProp="label" onChange={v=>setSelectedEntrust(v)} options={allEntrusts.map(e=>({label:e,value:e}))}/>}>
+      <Card title={<Space><BarChartOutlined/>委托企业 跨月总委托量 TOP10</Space>} size="small" style={{marginBottom:10}}>
+        <ReactECharts option={entrustTop10Chart} style={{height: 280}}/>
+      </Card>
+
+      <Card title={<Space><BarChartOutlined/>委托企业月度委托量（单选查看）</Space>} size="small" style={{marginBottom:10}}
+        extra={<Select size="small" style={{width:240}} value={selectedEntrust||undefined} placeholder="选择一家委托企业" showSearch optionFilterProp="label" onChange={v=>setSelectedEntrust(v)} options={allEntrusts.map(e=>({label:e,value:e}))}/>}>
         {selectedEntrust ? <ReactECharts option={entChart} style={{height:250}}/> : <Empty description="请选择一家委托企业" style={{padding:30}}/>}
       </Card>
 
