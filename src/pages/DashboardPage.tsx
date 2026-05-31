@@ -56,6 +56,11 @@ export const DashboardPage: React.FC = () => {
   const importData = useDataStore(s => s.importData);
   const createDimensionsFromColumns = useDimensionStore(s => s.createDimensionsFromColumns);
   const currentDataSet = useMemo(() => dataSets.find(ds => ds.id === currentDataSetId), [dataSets, currentDataSetId]);
+const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
+  const ma = a.name.match(/(\d{4})[-/](\d{1,2})/); const mb = b.name.match(/(\d{4})[-/](\d{1,2})/);
+  if (!ma || !mb) return 0;
+  return (parseInt(ma[1])*100+parseInt(ma[2])) - (parseInt(mb[1])*100+parseInt(mb[2]));
+}), [dataSets]);
   const { pre, computing, compute } = usePreprocessStore();
   const allRecords = currentDataSet?.records || [];
 
@@ -227,7 +232,7 @@ export const DashboardPage: React.FC = () => {
     <div>
       <Card size="small" style={{ marginBottom: 12 }}>
         <Row justify="space-between" align="middle">
-          <Col><Space><span style={{ fontWeight: 600, fontSize: 15 }}>标准化业务数据看板</span><Select size="small" style={{ width: 260 }} value={currentDataSetId} onChange={v => setCurrentDataSet(v)} options={dataSets.map(ds => ({ label: `${ds.name} (${ds.records.length}条)`, value: ds.id }))} /></Space></Col>
+          <Col><Space><span style={{ fontWeight: 600, fontSize: 15 }}>标准化业务数据看板</span><Select size="small" style={{ width: 260 }} value={currentDataSetId} onChange={v => setCurrentDataSet(v)} options={sortedDataSets.map(ds => ({ label: `${ds.name} (${ds.records.length}条)`, value: ds.id }))} /></Space></Col>
           <Col><span style={{ fontSize: 13, color: '#666' }}>{pre.dateRange.start} ~ {pre.dateRange.end}</span></Col>
         </Row>
       </Card>
