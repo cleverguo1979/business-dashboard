@@ -13,7 +13,6 @@ import type { EChartsOption } from 'echarts';
 import { useDataStore } from '../store/dataStore';
 import { useDimensionStore } from '../store/dimensionStore';
 import { usePreprocessStore } from '../store/preprocessStore';
-import { decryptCSV, getPassphrase } from '../utils/decrypt';
 import {
   preprocessedToHourly, preprocessedToDailyHourly,
   preprocessedToTimeRanges, preprocessedToConcurrency,
@@ -74,16 +73,14 @@ export const DashboardPage: React.FC = () => {
     try {
       const base = import.meta.env.BASE_URL;
       const availableFiles = ['数据2026-01.csv','数据2026-02.csv','数据2026-03.csv','数据2026-04.csv','数据2026-05.csv'];
-      const pass = getPassphrase();
       const year = '2026';
 
       // 并行加载所有文件
       const results = await Promise.allSettled(availableFiles.map(async (fileName) => {
         const m = fileName.match(/(\d{2})\.csv$/)?.[1] || '';
-        const resp = await fetch(base + fileName + '.enc');
+        const resp = await fetch(base + fileName);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const buf = await resp.arrayBuffer();
-        const text = await decryptCSV(buf, pass);
+        const text = await resp.text();
         const lines = text.split('\n').filter(l => l.trim());
         if (lines.length < 2) throw new Error('Empty');
         const headers = parseCSVLine(lines[0]);
