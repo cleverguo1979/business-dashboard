@@ -71,20 +71,62 @@ export const DashboardPage: React.FC = () => {
   const handleLoad = React.useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await fetch(import.meta.env.BASE_URL + '工作效率统计报表.csv');
-      const text = await resp.text();
-      const lines = text.split('\n').filter(l => l.trim());
-      if (lines.length < 2) return;
-      const headers = parseCSVLine(lines[0]);
-      const records: Record<string, any>[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const vals = parseCSVLine(lines[i]);
-        const row: Record<string, any> = {};
-        headers.forEach((h, idx) => { row[h] = vals[idx]?.trim() ?? ''; });
-        records.push(row);
+      // 列出 public 下所有 CSV 文件
+      const base = import.meta.env.BASE_URL;
+      // 从 index.html 中无法直接列出目录，改为加载已知月份
+      const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+      const year = '2026';
+      let loadedCount = 0;
+
+      for (const m of months) {
+        const fileName = `数据${year}-${m}.csv`;
+        try {
+          const resp = await fetch(base + fileName);
+          if (!resp.ok) continue;
+          const text = await resp.text();
+          const lines = text.split('\n').filter(l => l.trim());
+          if (lines.length < 2) continue;
+          const headers = parseCSVLine(lines[0]);
+          const records: Record<string, any>[] = [];
+          for (let i = 1; i < lines.length; i++) {
+            const vals = parseCSVLine(lines[i]);
+            const row: Record<string, any> = {};
+            headers.forEach((h, idx) => { row[h] = vals[idx]?.trim() ?? ''; });
+            records.push(row);
+          }
+          importData(`${year}-${m}`, fileName, records);
+          loadedCount++;
+        } catch { /* 该月份无文件 */ }
       }
-      importData('工作效率统计报表', '工作效率统计报表.xls', records);
-      createDimensionsFromColumns(headers.map(h => ({ key: h, label: h, type: 'string' as const })));
+
+      // 兼容旧文件
+      if (loadedCount === 0) {
+        const resp = await fetch(base + '工作效率统计报表.csv');
+        if (resp.ok) {
+          const text = await resp.text();
+          const lines = text.split('\n').filter(l => l.trim());
+          if (lines.length >= 2) {
+            const headers = parseCSVLine(lines[0]);
+            const records: Record<string, any>[] = [];
+            for (let i = 1; i < lines.length; i++) {
+              const vals = parseCSVLine(lines[i]);
+              const row: Record<string, any> = {};
+              headers.forEach((h, idx) => { row[h] = vals[idx]?.trim() ?? ''; });
+              records.push(row);
+            }
+            importData('工作效率统计报表', '工作效率统计报表.xls', records);
+            loadedCount = 1;
+          }
+        }
+      }
+
+      if (loadedCount > 0) {
+        createDimensionsFromColumns([
+          { key: '业务下单时间', label: '业务下单时间', type: 'string' as const },
+          { key: '接单时间', label: '接单时间', type: 'string' as const },
+          { key: '首次提交复核时间', label: '首次提交复核时间', type: 'string' as const },
+        ]);
+      }
     } catch { } finally { setLoading(false); }
   }, [importData, createDimensionsFromColumns]);
 
