@@ -108,6 +108,7 @@ export const DashboardPage: React.FC = () => {
           const lines = text.split('\n').filter(l => l.trim());
           if (lines.length < 2) throw new Error('Empty');
           const headers = parseCSVLine(lines[0]);
+          if (headers[0]) headers[0] = headers[0].replace(/^﻿+/, ''); // strip BOM
           const records: Record<string,any>[] = [];
           for (let i = 1; i < lines.length; i++) {
             const vals = parseCSVLine(lines[i]);
