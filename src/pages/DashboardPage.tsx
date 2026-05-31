@@ -177,26 +177,33 @@ export const DashboardPage: React.FC = () => {
       </Card>
 
       <Row gutter={[8, 8]} style={{ marginBottom: 12 }}>
-        {[
-          { title: '标准化业务报关单总数', value: total, suffix: '单', color: '#1677ff', icon: <BarChartOutlined /> },
-          { title: '日期范围', value: `${pre.dateRange.start} ~ ${pre.dateRange.end}`, color: '#333', fs: 12 },
-          { title: '平均接单耗时', value: fmtSec(acceptAll), color: acceptAll < 120 ? '#52c41a' : '#fa8c16', sub: `剔除异常：${fmtSec(acceptClean)}`, icon: <ClockCircleOutlined /> },
-          { title: '平均制单时长', value: fmtSec(docAll), color: docAll < 600 ? '#52c41a' : '#fa8c16', sub: `剔除异常：${fmtSec(docClean)}`, icon: <FileTextOutlined /> },
-          { title: `高峰 ${peakInfo.hour}`, value: `${peakInfo.count} 单 (${pct(peakInfo.count, total)}%)`, color: '#f5222d', icon: <ThunderboltOutlined /> },
-          { title: '跨日制单', value: `${pre.crossDateCount} 单 (${pct(pre.crossDateCount, total)}%)`, color: '#fa8c16', bg: '#fff7e6', icon: <AlertOutlined /> },
-          { title: '17:00后下单', value: `${pre.after17Count} 单 (${pct(pre.after17Count, total)}%)`, color: '#f5222d', bg: '#fff1f0', icon: <WarningOutlined /> },
-        ].map((item, i) => (
-          <Col xs={12} sm={8} md={6} lg={3} xl={Math.floor(24 / 7)} key={i}>
-            <Card size="small" style={{ background: (item as any).bg, height: '100%' }}>
-              <Statistic
-                title={<span>{(item as any).icon} {(item as any).icon ? ' ' : ''}{item.title}</span>}
-                value={item.value}
-                valueStyle={{ color: item.color, fontWeight: 600, fontSize: (item as any).fs || 16 }}
-              />
-              {(item as any).sub && <div style={{ fontSize: 10, color: '#999', marginTop: 2 }}>{(item as any).sub}</div>}
-            </Card>
-          </Col>
-        ))}
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small"><Statistic title={<span><BarChartOutlined /> 报关单总数</span>} value={total} suffix="单" valueStyle={{ color: '#1677ff', fontWeight: 700, fontSize: 20 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small"><Statistic title="日期范围" value={`${pre.dateRange.start} ~ ${pre.dateRange.end}`} valueStyle={{ fontSize: 12 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}>
+          <Card size="small">
+            <Statistic title={<span><ClockCircleOutlined /> 平均接单耗时</span>} valueRender={() => (
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ color: acceptAll < 120 ? '#52c41a' : '#fa8c16', fontWeight: 700, fontSize: 20 }}>{fmtSec(acceptAll)}</span>
+                <span style={{ fontSize: 12, color: '#999' }}>| 剔除</span>
+                <span style={{ color: '#52c41a', fontWeight: 600, fontSize: 16 }}>{fmtSec(acceptClean)}</span>
+              </div>
+            )} />
+          </Card>
+        </Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}>
+          <Card size="small">
+            <Statistic title={<span><FileTextOutlined /> 平均制单时长</span>} valueRender={() => (
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ color: docAll < 600 ? '#52c41a' : '#fa8c16', fontWeight: 700, fontSize: 20 }}>{fmtSec(docAll)}</span>
+                <span style={{ fontSize: 12, color: '#999' }}>| 剔除</span>
+                <span style={{ color: '#52c41a', fontWeight: 600, fontSize: 16 }}>{fmtSec(docClean)}</span>
+              </div>
+            )} />
+          </Card>
+        </Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small"><Statistic title={<span><ThunderboltOutlined /> 高峰 {peakInfo.hour}</span>} value={`${peakInfo.count} 单 (${pct(peakInfo.count, total)}%)`} valueStyle={{ color: '#f5222d', fontWeight: 700, fontSize: 18 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ background: '#fff7e6' }}><Statistic title={<span><AlertOutlined style={{ color: '#fa8c16' }} /> 跨日制单</span>} value={`${pre.crossDateCount} 单 (${pct(pre.crossDateCount, total)}%)`} valueStyle={{ color: '#fa8c16', fontWeight: 600, fontSize: 18 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ background: '#fff1f0' }}><Statistic title={<span><WarningOutlined style={{ color: '#f5222d' }} /> 17:00后下单</span>} value={`${pre.after17Count} 单 (${pct(pre.after17Count, total)}%)`} valueStyle={{ color: '#f5222d', fontWeight: 600, fontSize: 18 }} /></Card></Col>
       </Row>
 
       <Row gutter={[14, 14]} style={{ marginBottom: 12 }}>
