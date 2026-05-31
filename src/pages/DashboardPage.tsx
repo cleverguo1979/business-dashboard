@@ -2,7 +2,7 @@
  * 业务数据看板
  */
 import React, { useMemo, useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Table, Select, Tag, Space, Empty, Button, Spin, Radio, Segmented, Tooltip } from 'antd';
+import { Card, Row, Col, Statistic, Table, Select, Tag, Space, Empty, Button, Spin, Radio, Tooltip } from 'antd';
 import {
   ClockCircleOutlined, ThunderboltOutlined, BarChartOutlined,
   WarningOutlined, ReloadOutlined, FileTextOutlined, AlertOutlined,
@@ -62,7 +62,6 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => { if (allRecords.length > 0 && !pre && !computing) compute(allRecords); }, [allRecords, pre, computing, compute]);
 
   const [loading, setLoading] = useState(false);
-  const [anomalyMode, setAnomalyMode] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'all' | 'daily'>('all');
   const [selectedDate, setSelectedDate] = useState('');
   const [after17Mode, setAfter17Mode] = useState<'all' | 'daily'>('all');
@@ -94,7 +93,7 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => { if (pre && pre.after17AvailableDates.length && !after17Date) setAfter17Date(pre.after17AvailableDates[pre.after17AvailableDates.length - 1]); }, [pre, after17Date]);
 
   // 所有 useMemo 都在这里（pre 可能为 null，需要兜底）
-  const ex = anomalyMode === 'exclude';
+  const ex = false; // 汇总卡片已显示剔除异常值，此处固定显示全部数据
   const total = pre?.total || 0;
   const acceptAll = useMemo(() => pre && pre.acceptDurations.length > 0 ? pre.acceptDurations.reduce((a, b) => a + b, 0) / pre.acceptDurations.length : 0, [pre]);
   const acceptClean = useMemo(() => pre && pre.acceptDurationsClean.length > 0 ? pre.acceptDurationsClean.reduce((a, b) => a + b, 0) / pre.acceptDurationsClean.length : 0, [pre]);
@@ -170,12 +169,9 @@ export const DashboardPage: React.FC = () => {
         <Row justify="space-between" align="middle">
           <Col><Space><span style={{ fontWeight: 600, fontSize: 15 }}>📋 业务数据看板</span><Select size="small" style={{ width: 260 }} value={currentDataSetId} onChange={v => setCurrentDataSet(v)} options={dataSets.map(ds => ({ label: `${ds.name} (${ds.records.length}条)`, value: ds.id }))} /></Space></Col>
           <Col>
-            <Space size={4}>
-              <Tooltip title="「跨日制单」指业务下单日期与首次提交复核日期不在同一天的订单，此类订单制单耗时异常偏高，剔除后可查看正常业务的效率数据">
-                <span style={{ fontSize: 12, color: '#999', cursor: 'help', borderBottom: '1px dashed #999' }}>ⓘ 剔除说明</span>
-              </Tooltip>
-              <Segmented size="small" value={anomalyMode} onChange={v => setAnomalyMode(v as string)} options={[{ label: '全部数据', value: 'all' }, { label: '剔除异常(跨日)', value: 'exclude' }]} />
-            </Space>
+            <Tooltip title="「跨日制单」指业务下单日期与首次提交复核日期不在同一天的订单，此类订单制单耗时异常偏高。汇总卡片中已标注剔除异常后的平均耗时，下方维度图表展示全部数据。">
+              <span style={{ fontSize: 12, color: '#999', cursor: 'help', borderBottom: '1px dashed #999' }}>ⓘ 剔除异常说明</span>
+            </Tooltip>
           </Col>
         </Row>
       </Card>
