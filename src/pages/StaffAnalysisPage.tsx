@@ -3,7 +3,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { Card, Row, Col, Select, Tag, Space, Empty, Table, Statistic, Tooltip } from 'antd';
-import { TeamOutlined, ClockCircleOutlined, BarChartOutlined, TrophyOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { TeamOutlined, ClockCircleOutlined, BarChartOutlined, TrophyOutlined, QuestionCircleOutlined, ExportOutlined, ImportOutlined, AlertOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import { useDataStore } from '../store/dataStore';
@@ -236,22 +236,29 @@ export const StaffAnalysisPage: React.FC = () => {
         {selectedProfile ? (
           <div>
             <ReactECharts option={selectedMonthlyChart} style={{height:280}}/>
-            <Row gutter={[12,12]} style={{marginTop:12}}>
+            <div style={{marginTop:12,display:'flex',flexWrap:'wrap',gap:8}}>
               {(()=>{
                 const s=selectedProfile;
                 const avgFull=s.docPrepCount>0?fmtSec(s.docPrepSum/s.docPrepCount):'-';
                 const avgClean=s.docPrepCleanCount>0?fmtSec(s.docPrepCleanSum/s.docPrepCleanCount):'-';
-                return <>
-                  <Col xs={12} sm={4}><Statistic title="标准化报关单量" value={s.total} suffix="单"/></Col>
-                  <Col xs={12} sm={4}><Statistic title="出口" value={s.expTotal} suffix="单"/></Col>
-                  <Col xs={12} sm={4}><Statistic title="进口" value={s.impTotal} suffix="单"/></Col>
-                  <Col xs={12} sm={4}><Statistic title="制单时效(全量)" value={avgFull}/></Col>
-                  <Col xs={12} sm={4}><Statistic title="制单时效(剔除)" value={avgClean}/></Col>
-                  <Col xs={12} sm={4}><Statistic title="17点后" value={`${s.after17Total} (${pct(s.after17Total,s.total)}%)`}/></Col>
-                  <Col xs={12} sm={4}><Statistic title="跨日" value={`${s.crossTotal} (${pct(s.crossTotal,s.total)}%)`}/></Col>
-                </>;
+                const items = [
+                  {icon:<BarChartOutlined/>,label:'报关单量',value:s.total+' 单',color:C[0]},
+                  {icon:<ExportOutlined/>,label:'出口',value:s.expTotal+' 单',color:C[0]},
+                  {icon:<ImportOutlined/>,label:'进口',value:s.impTotal+' 单',color:C[1]},
+                  {icon:<ClockCircleOutlined/>,label:'时效(全量)',value:avgFull,color:C[0]},
+                  {icon:<ClockCircleOutlined/>,label:'时效(剔除)',value:avgClean,color:C[1]},
+                  {icon:<AlertOutlined/>,label:'17点后',value:`${s.after17Total} 单 (${pct(s.after17Total,s.total)}%)`,color:'#f5222d'},
+                  {icon:<AlertOutlined/>,label:'跨日',value:`${s.crossTotal} 单 (${pct(s.crossTotal,s.total)}%)`,color:'#fa8c16'},
+                ];
+                return items.map((it,i)=>(
+                  <div key={i} style={{display:'inline-flex',alignItems:'center',gap:6,background:'#fafafa',borderRadius:8,padding:'6px 14px',border:'1px solid #f0f0f0'}}>
+                    <span style={{color:it.color,fontSize:14}}>{it.icon}</span>
+                    <span style={{fontSize:11,color:'#999'}}>{it.label}</span>
+                    <b style={{fontSize:13,color:it.color}}>{it.value}</b>
+                  </div>
+                ));
               })()}
-            </Row>
+            </div>
             <Table dataSource={[...(selectedProfile.monthly.entries())].sort((a,b)=>a[0]-b[0]).map(([m,ms],i)=>({_key:i,month:ALL_MONTHS[m-1],...ms,avgFull:ms.docPrepCount>0?fmtSec(ms.docPrepSum/ms.docPrepCount):'-',avgClean:ms.docPrepCleanCount>0?fmtSec(ms.docPrepCleanSum/ms.docPrepCleanCount):'-'}))} rowKey="_key" size="small" pagination={false} style={{marginTop:8}}
               columns={[
                 {title:'月份',dataIndex:'month',width:55},
