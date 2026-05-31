@@ -62,6 +62,7 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => { if (allRecords.length > 0) { usePreprocessStore.getState().reset(); compute(allRecords); } }, [allRecords]);
 
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [viewMode, setViewMode] = useState<'all' | 'daily'>('all');
   const [selectedDate, setSelectedDate] = useState('');
   const [after17Mode, setAfter17Mode] = useState<'all' | 'daily'>('all');
@@ -71,49 +72,68 @@ export const DashboardPage: React.FC = () => {
 
   const handleLoad = React.useCallback(async () => {
     setLoading(true);
+    setProgress(0);
     try {
       const base = import.meta.env.BASE_URL;
       const availableFiles = ['数据2026-04.csv','数据2026-05.csv'];
       const year = '2026';
       const pass = getPassphrase();
 
-      // 并行加载+解密所有文件
-      const results = await Promise.allSettled(availableFiles.map(async (fileName) => {
-        const m = fileName.match(/(\d{2})\.csv$/)?.[1] || '';
-        const resp = await fetch(base + fileName + ".enc");
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const buf = await resp.arrayBuffer(); const text = await decryptCSV(buf, pass);
-        const lines = text.split('\n').filter(l => l.trim());
-        if (lines.length < 2) throw new Error('Empty');
-        const headers = parseCSVLine(lines[0]);
-        const records: Record<string, any>[] = [];
-        for (let i = 1; i < lines.length; i++) {
-          const vals = parseCSVLine(lines[i]);
-          const row: Record<string, any> = {};
-          headers.forEach((h, idx) => { row[h] = vals[idx]?.trim() ?? ''; });
-          records.push(row);
-        }
-        return { month: m, fileName, records };
-      }));
+      // HEAD 请求获取文件大小用于进度计算
+      let totalBytes = 0;
+      for (const f of availableFiles) {
+        try { const h = await fetch(base + f + '.enc', { method: 'HEAD' }); totalBytes += parseInt(h.headers.get('Content-Length') || '0'); } catch {}
+      }
+
+      let downloadedBytes = 0;
+      const results = [];
+      for (const fileName of availableFiles) {
+        const m = fileName.match(/(d{2}).csv$/)?.[1] || '';
+        try {
+          const resp = await fetch(base + fileName + '.enc');
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          const reader = resp.body!.getReader();
+          const chunks = [];
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            downloadedBytes += value.length;
+            if (totalBytes > 0) setProgress(Math.round((downloadedBytes / totalBytes) * 100));
+          }
+          const totalLen = chunks.reduce((a, c) => a + c.length, 0);
+          const buf = new Uint8Array(totalLen); let off = 0;
+          for (const c of chunks) { buf.set(c, off); off += c.length; }
+          const text = await decryptCSV(buf.buffer, pass);
+          const lines = text.split('\n').filter(l => l.trim());
+          if (lines.length < 2) throw new Error('Empty');
+          const headers = parseCSVLine(lines[0]);
+          const records: Record<string,any>[] = [];
+          for (let i = 1; i < lines.length; i++) {
+            const vals = parseCSVLine(lines[i]);
+            const row: Record<string,any> = {};
+            headers.forEach((h, idx) => { row[h] = vals[idx]?.trim() ?? ''; });
+            records.push(row);
+          }
+          results.push({ ok: true, month: m, fileName, records });
+        } catch (e) { results.push({ ok: false, fileName, error: e }); }
+      }
 
       let loadedCount = 0;
       for (const r of results) {
-        if (r.status === 'fulfilled') {
-          importData(`${year}-${r.value.month}`, r.value.fileName, r.value.records);
-          loadedCount++;
-        }
+        if (r.ok) { importData(year + "-" + r.month, r.fileName, r.records!); loadedCount++; }
       }
-      message.success(`成功加载 ${loadedCount}/${availableFiles.length} 个月份数据`);
+      setProgress(100);
+      message.success('成功加载 ' + loadedCount + '/' + availableFiles.length + ' 个月份数据');
       if (loadedCount > 0) {
         createDimensionsFromColumns([
-          { key: '业务下单时间', label: '业务下单时间', type: 'string' as const },
-          { key: '接单时间', label: '接单时间', type: 'string' as const },
-          { key: '首次提交复核时间', label: '首次提交复核时间', type: 'string' as const },
+          { key: '业务下单时间', label: '业务下单时间', type: 'string' },
+          { key: '接单时间', label: '接单时间', type: 'string' },
+          { key: '首次提交复核时间', label: '首次提交复核时间', type: 'string' },
         ]);
       }
-    } catch { } finally { setLoading(false); }
+    } catch {} finally { setLoading(false); }
   }, [importData, createDimensionsFromColumns]);
-
   useEffect(() => { if (pre && pre.availableDates.length && !selectedDate) setSelectedDate(pre.availableDates[pre.availableDates.length - 1]); }, [pre, selectedDate]);
   useEffect(() => { if (pre && pre.after17AvailableDates.length && !after17Date) setAfter17Date(pre.after17AvailableDates[pre.after17AvailableDates.length - 1]); }, [pre, after17Date]);
 
@@ -190,8 +210,10 @@ export const DashboardPage: React.FC = () => {
       return <div style={{ textAlign: 'center', marginTop: 150 }}>
         <div style={{ display: 'inline-block', width: 48, height: 48, border: '4px solid #e8e8e8', borderTopColor: '#1677ff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <p style={{ color: '#1677ff', marginTop: 20, fontSize: 15, fontWeight: 500 }}>正在下载并解密数据，请耐心等待...</p>
-        <p style={{ color: '#999', fontSize: 12 }}>加密数据 4月+5月约 21MB，从 GitHub 拉取需要 1-2 分钟</p>
+        <p style={{ color: '#1677ff', marginTop: 20, fontSize: 15, fontWeight: 500 }}>正在下载并解密数据...</p>
+        <div style={{ width: 280, height: 8, background: '#e8e8e8', borderRadius: 4, margin: '16px auto', overflow: 'hidden' }}><div style={{ width: progress + '%', height: '100%', background: 'linear-gradient(90deg, #1677ff, #52c41a)', borderRadius: 4, transition: 'width 0.3s' }} /></div>
+        <p style={{ color: '#1677ff', fontSize: 18, fontWeight: 700 }}>{progress}%</p>
+        <p style={{ color: '#999', fontSize: 12 }}>加密数据 4月+5月约 21MB</p>
       </div>;
     }
     return <div style={{ textAlign: 'center', marginTop: 100 }}><Empty description="暂无数据" image={Empty.PRESENTED_IMAGE_SIMPLE} /><Button type="primary" size="large" icon={<ReloadOutlined />} onClick={handleLoad}>一键加载加密报表</Button></div>;
