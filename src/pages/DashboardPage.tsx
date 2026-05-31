@@ -99,27 +99,6 @@ export const DashboardPage: React.FC = () => {
         } catch { /* 该月份无文件 */ }
       }
 
-      // 兼容旧文件
-      if (loadedCount === 0) {
-        const resp = await fetch(base + '工作效率统计报表.csv');
-        if (resp.ok) {
-          const text = await resp.text();
-          const lines = text.split('\n').filter(l => l.trim());
-          if (lines.length >= 2) {
-            const headers = parseCSVLine(lines[0]);
-            const records: Record<string, any>[] = [];
-            for (let i = 1; i < lines.length; i++) {
-              const vals = parseCSVLine(lines[i]);
-              const row: Record<string, any> = {};
-              headers.forEach((h, idx) => { row[h] = vals[idx]?.trim() ?? ''; });
-              records.push(row);
-            }
-            importData('工作效率统计报表', '工作效率统计报表.xls', records);
-            loadedCount = 1;
-          }
-        }
-      }
-
       if (loadedCount > 0) {
         createDimensionsFromColumns([
           { key: '业务下单时间', label: '业务下单时间', type: 'string' as const },

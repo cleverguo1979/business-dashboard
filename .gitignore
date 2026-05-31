@@ -23,3 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 public/工作效率统计报表.xls
+
+.vercel
+deploy-oss.cjs
+ossutil*
+ossutil.zip
