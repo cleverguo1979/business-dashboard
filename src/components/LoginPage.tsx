@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { Input, Button, message } from 'antd';
 import { LockOutlined, RocketOutlined } from '@ant-design/icons';
+import { setPassphrase } from '../utils/decrypt';
 
 interface Props {
   onSuccess: () => void;
@@ -18,6 +19,7 @@ export const LoginPage: React.FC<Props> = ({ onSuccess }) => {
     // 模拟验证延迟
     setTimeout(() => {
       if (code === '远海通') {
+        setPassphrase(code);
         message.success('欢迎使用标准化业务看板');
         onSuccess();
       } else {
