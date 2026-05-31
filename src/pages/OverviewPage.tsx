@@ -2,11 +2,20 @@
  * 标准化业务报关单 - 跨月度横向对比，X轴固定1-12月
  */
 import React, { useMemo, useState } from 'react';
-import { Card, Row, Col, Tag, Space, Empty, Select } from 'antd';
-import { BarChartOutlined, ClockCircleOutlined, AlertOutlined, ExportOutlined, ImportOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Tag, Space, Empty, Select, Alert, Table, Progress } from 'antd';
+import { BarChartOutlined, ClockCircleOutlined, AlertOutlined, ExportOutlined, ImportOutlined, SafetyOutlined, RiseOutlined, WarningOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import { useDataStore } from '../store/dataStore';
+import {
+  buildCustomerProfiles,
+  generateRiskInsights,
+  riskLevelColor,
+  fmtPct,
+  fmtMin,
+  fmtGrowth,
+} from '../utils/customerRiskAnalyzer';
+import type { CustomerMonthDetail, MonthSlotWithDetails, CustomerRiskProfile } from '../utils/customerRiskAnalyzer';
 
 function parseTime(s: string): Date | null { if(!s)return null; const d=new Date(s.replace(' ','T')); return isNaN(d.getTime())?null:d; }
 function fmtSec(s: number): string { if(s<60)return `${Math.round(s)}秒`; if(s<3600)return `${(s/60).toFixed(1)}分`; return `${(s/3600).toFixed(1)}时`; }
@@ -27,9 +36,11 @@ interface MonthSlot {
   total: number; crossDate: number; after17: number;
   exp: ImpExpStats; imp: ImpExpStats;
   entrustCounts: Map<string,number>; hasData: boolean;
+  entrustDetails: Map<string, CustomerMonthDetail>;
 }
 function emptyStats(): ImpExpStats { return { acceptAll:[],acceptClean:[],docAll:[],docClean:[] }; }
-function emptySlot(): MonthSlot { return { total:0,crossDate:0,after17:0,exp:emptyStats(),imp:emptyStats(),entrustCounts:new Map(),hasData:false }; }
+function emptyDetail(): CustomerMonthDetail { return { total:0, after17:0, crossDate:0, inquirySum:0, docPrepSum:0, docPrepCount:0 }; }
+function emptySlot(): MonthSlot { return { total:0,crossDate:0,after17:0,exp:emptyStats(),imp:emptyStats(),entrustCounts:new Map(),hasData:false,entrustDetails:new Map() }; }
 
 function buildTimeLine(data: (number|null)[], name: string, color: string, isClean?: boolean): any {
   return { name, type:'line', data, smooth:true, symbol: isClean?'diamond':'circle', symbolSize:6,
@@ -58,18 +69,26 @@ export const OverviewPage: React.FC = () => {
       const month = extractMonth(ds.name); if(month===null||month<1||month>12) continue;
       const s = slots[month-1]; s.hasData = true;
       const entrustCounts = new Map<string,number>();
+      const entrustDetails = new Map<string, CustomerMonthDetail>();
       s.total = ds.records.length;
       for(const r of ds.records){
         const entrust = r['委托企业']||'(空)'; entrustCounts.set(entrust,(entrustCounts.get(entrust)||0)+1);
+        // 每客户月度明细
+        if(!entrustDetails.has(entrust)) entrustDetails.set(entrust, emptyDetail());
+        const ed = entrustDetails.get(entrust)!; ed.total++;
+
         const ot=parseTime(r['业务下单时间']), at=parseTime(r['接单时间']), rt=parseTime(r['首次提交复核时间']);
         const isCross=ot&&rt?ot.toDateString()!==rt.toDateString():false;
         const rawType = (r['进/口类型']||'').toString().trim();
         const isExp = rawType==='E'; const isImp = rawType==='I';
         const stats = isExp ? s.exp : isImp ? s.imp : null;
-        if(ot){ if(ot.getHours()>=17) s.after17++; }
+        if(ot){ if(ot.getHours()>=17) { s.after17++; ed.after17++; } }
         if(ot&&at){ const d=(at.getTime()-ot.getTime())/1000; if(d>=0){ if(stats) stats.acceptAll.push(d); if(!isCross&&stats) stats.acceptClean.push(d); } }
-        if(ot&&rt){ const d=(rt.getTime()-ot.getTime())/1000; if(d>=0){ if(stats) stats.docAll.push(d); if(!isCross&&stats) stats.docClean.push(d); } if(isCross) s.crossDate++; }
+        if(ot&&rt){ const d=(rt.getTime()-ot.getTime())/1000; if(d>=0){ if(stats) stats.docAll.push(d); if(!isCross&&stats) stats.docClean.push(d); ed.docPrepSum+=d; ed.docPrepCount++; } if(isCross) { s.crossDate++; ed.crossDate++; } }
+        // 问询次数
+        const inquiry = parseInt(r['问询次数']) || 0; ed.inquirySum += inquiry;
       }
+      s.entrustDetails = entrustDetails;
       s.entrustCounts = entrustCounts;
     }
     return slots;
@@ -140,6 +159,32 @@ export const OverviewPage: React.FC = () => {
     series:[{name:'17:00后下单',type:'bar',data:monthSlots.map(s=>nullIf(s.hasData,s.after17)),itemStyle:{borderRadius:[4,4,0,0]},label:{show:true,position:'top',fontSize:10}}],
   }),[monthSlots]);
 
+  // ==================== 智能风控分析 ====================
+  const customerProfiles = useMemo(() => {
+    return buildCustomerProfiles(monthSlots as MonthSlotWithDetails[]);
+  }, [monthSlots]);
+
+  const riskInsights = useMemo(() => {
+    return generateRiskInsights(customerProfiles);
+  }, [customerProfiles]);
+
+  // 风控表格数据：TOP20 客户 + 风险指标
+  const riskTableData = useMemo(() => {
+    return customerProfiles.slice(0, 20).map((p, i) => ({
+      key: p.name,
+      rank: i + 1,
+      ...p,
+    }));
+  }, [customerProfiles]);
+
+  const riskStats = useMemo(() => {
+    const highRisk = customerProfiles.filter(p => p.riskLevel === 'high' || p.riskLevel === 'critical').length;
+    const mediumRisk = customerProfiles.filter(p => p.riskLevel === 'medium').length;
+    const fastGrowing = customerProfiles.filter(p => p.tags.includes('快速增长')).length;
+    const declining = customerProfiles.filter(p => p.tags.includes('严重下滑')).length;
+    return { highRisk, mediumRisk, fastGrowing, declining, total: customerProfiles.length };
+  }, [customerProfiles]);
+
   if(!hasData) return <Empty style={{marginTop:100}} description="请先导入数据（数据集名需含月份，如 2026-04）"/>;
 
   return (
@@ -189,6 +234,187 @@ export const OverviewPage: React.FC = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* ==================== 智能风控分析 ==================== */}
+      <Card
+        size="small"
+        style={{ marginTop: 10, marginBottom: 10, borderLeft: '4px solid #722ed1' }}
+        title={
+          <Space>
+            <SafetyOutlined style={{ color: '#722ed1' }} />
+            <span style={{ fontWeight: 600, fontSize: 15 }}>智能风控分析</span>
+            <Tag color="purple">AI 推理</Tag>
+            <Tag color="processing">{riskStats.total} 家企业</Tag>
+            {riskStats.highRisk > 0 && <Tag color="error">{riskStats.highRisk} 家高风险</Tag>}
+            {riskStats.fastGrowing > 0 && <Tag color="orange">↑{riskStats.fastGrowing} 家增长</Tag>}
+            {riskStats.declining > 0 && <Tag color="warning">↓{riskStats.declining} 家下滑</Tag>}
+          </Space>
+        }
+      >
+        {/* 风控洞察面板 */}
+        <div style={{ marginBottom: 16 }}>
+          {riskInsights.map((insight, idx) => {
+            const iconMap: Record<string, React.ReactNode> = {
+              error: <WarningOutlined />,
+              warning: <AlertOutlined />,
+              info: <RiseOutlined />,
+              success: <BarChartOutlined />,
+            };
+            return (
+              <Alert
+                key={idx}
+                type={insight.severity}
+                icon={iconMap[insight.severity]}
+                message={<strong>{insight.title}</strong>}
+                description={<div style={{ fontSize: 13, lineHeight: 1.8 }}>{insight.description}</div>}
+                style={{ marginBottom: 8 }}
+                showIcon
+              />
+            );
+          })}
+        </div>
+
+        {/* 风险指标概览卡片 */}
+        <Row gutter={[10, 10]} style={{ marginBottom: 16 }}>
+          <Col xs={12} sm={6}>
+            <Card size="small" style={{ background: '#fff7e6', borderColor: '#ffa940' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#d46b08' }}>{riskStats.highRisk}</div>
+                <div style={{ fontSize: 12, color: '#666' }}>高风险客户</div>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card size="small" style={{ background: '#fff2e8', borderColor: '#ff7a45' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#d4380d' }}>{riskStats.declining}</div>
+                <div style={{ fontSize: 12, color: '#666' }}>严重下滑</div>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card size="small" style={{ background: '#f6ffed', borderColor: '#95de64' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#389e0d' }}>{riskStats.fastGrowing}</div>
+                <div style={{ fontSize: 12, color: '#666' }}>快速增长</div>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card size="small" style={{ background: '#e6f7ff', borderColor: '#69c0ff' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#096dd9' }}>{riskStats.mediumRisk}</div>
+                <div style={{ fontSize: 12, color: '#666' }}>中风险关注</div>
+              </div>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* 客户风险明细表 */}
+        <Card
+          size="small"
+          title={<Space><SafetyOutlined style={{ color: '#722ed1' }} />重点客户风险明细 TOP20</Space>}
+          style={{ background: '#fafafa' }}
+        >
+          <Table<CustomerRiskProfile & { rank: number }>
+            dataSource={riskTableData}
+            size="small"
+            pagination={false}
+            scroll={{ x: 900 }}
+            columns={[
+              { title: '#', dataIndex: 'rank', width: 36, align: 'center' },
+              {
+                title: '委托企业', dataIndex: 'name', width: 160, ellipsis: true,
+                render: (v: string) => <span style={{ fontWeight: 500 }}>{v}</span>,
+              },
+              {
+                title: '总委托量', dataIndex: 'totalVolume', width: 80, align: 'right',
+                sorter: (a: CustomerRiskProfile, b: CustomerRiskProfile) => b.totalVolume - a.totalVolume,
+                defaultSortOrder: 'descend' as const,
+              },
+              {
+                title: '最近月', dataIndex: 'latestMonthIndex', width: 72, align: 'center',
+                render: (_: number, r: CustomerRiskProfile) => {
+                  const v = r.latestMonthIndex >= 0 ? r.monthlyVolumes[r.latestMonthIndex] : null;
+                  return v !== null ? v : '—';
+                },
+              },
+              {
+                title: '环比', dataIndex: 'growthRate', width: 72, align: 'center',
+                render: (v: number | null) => {
+                  if (v === null) return <span style={{ color: '#999' }}>—</span>;
+                  const color = v >= 0 ? (v > 0.5 ? '#cf1322' : '#389e0d') : '#cf1322';
+                  const icon = v >= 0 ? '↑' : '↓';
+                  return <span style={{ color, fontWeight: 600 }}>{icon}{fmtGrowth(v)}</span>;
+                },
+                sorter: (a: CustomerRiskProfile, b: CustomerRiskProfile) => (a.growthRate ?? -Infinity) - (b.growthRate ?? -Infinity),
+              },
+              {
+                title: '17点后占比', dataIndex: 'after17Ratio', width: 90, align: 'center',
+                render: (v: number) => (
+                  <Tag color={v > 0.3 ? 'error' : v > 0.15 ? 'warning' : 'success'}>{fmtPct(v)}</Tag>
+                ),
+              },
+              {
+                title: '跨日占比', dataIndex: 'crossDateRatio', width: 84, align: 'center',
+                render: (v: number) => (
+                  <Tag color={v > 0.1 ? 'error' : v > 0.05 ? 'warning' : 'success'}>{fmtPct(v)}</Tag>
+                ),
+              },
+              {
+                title: '均问询', dataIndex: 'avgInquiry', width: 70, align: 'center',
+                render: (v: number) => {
+                  const color = v > 2 ? '#cf1322' : v > 1 ? '#d48806' : '#389e0d';
+                  return <span style={{ color, fontWeight: 500 }}>{v.toFixed(1)}次</span>;
+                },
+              },
+              {
+                title: '制单时长', dataIndex: 'avgDocPrepMin', width: 80, align: 'center',
+                render: (v: number) => <span>{fmtMin(v)}</span>,
+              },
+              {
+                title: '风险评分', dataIndex: 'riskScore', width: 140, align: 'center',
+                render: (v: number) => {
+                  const color = riskLevelColor(v >= 80 ? 'critical' : v >= 60 ? 'high' : v >= 30 ? 'medium' : 'low');
+                  const label = v >= 80 ? '严重' : v >= 60 ? '高风险' : v >= 30 ? '中风险' : '低风险';
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Progress
+                        percent={v}
+                        size="small"
+                        strokeColor={color}
+                        showInfo={false}
+                        style={{ width: 80, margin: 0 }}
+                      />
+                      <Tag color={v >= 80 ? 'red' : v >= 60 ? 'error' : v >= 30 ? 'warning' : 'success'} style={{ margin: 0 }}>
+                        {label}
+                      </Tag>
+                    </div>
+                  );
+                },
+                sorter: (a: CustomerRiskProfile, b: CustomerRiskProfile) => a.riskScore - b.riskScore,
+              },
+              {
+                title: '标签', dataIndex: 'tags', width: 140,
+                render: (tags: string[]) => (
+                  <Space size={[2, 2]} wrap>
+                    {tags.map(t => {
+                      const colorMap: Record<string, string> = {
+                        '快速增长': 'green',
+                        '严重下滑': 'red',
+                        '晚间下单多': 'orange',
+                        '跨日制单多': 'volcano',
+                        '问询频繁': 'purple',
+                      };
+                      return <Tag key={t} color={colorMap[t] || 'default'} style={{ fontSize: 11 }}>{t}</Tag>;
+                    })}
+                  </Space>
+                ),
+              },
+            ]}
+          />
+        </Card>
+      </Card>
     </div>
   );
 };
