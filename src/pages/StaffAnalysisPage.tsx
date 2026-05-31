@@ -236,7 +236,7 @@ export const StaffAnalysisPage: React.FC = () => {
         {selectedProfile ? (
           <div>
             <ReactECharts option={selectedMonthlyChart} style={{height:280}}/>
-            <Row gutter={[10,10]} style={{marginTop:12}}>
+            <Row gutter={[10,10]} style={{marginTop:12,justifyContent:'center'}}>
               {(()=>{
                 const s=selectedProfile;
                 const avgFull=s.docPrepCount>0?fmtSec(s.docPrepSum/s.docPrepCount):'-';
@@ -251,7 +251,7 @@ export const StaffAnalysisPage: React.FC = () => {
                   {icon:<AlertOutlined/>,label:'跨日',value:`${s.crossTotal} 单`,sub:`${pct(s.crossTotal,s.total)}%`,color:'#fa8c16'},
                 ];
                 return cards.map((c,i)=>(
-                  <Col xs={6} sm={Math.floor(24/7)} key={i}>
+                  <Col xs={6} sm={3} flex="1 0 140px" key={i}>
                     <Card size="small" bodyStyle={{padding:'10px 12px',textAlign:'center'}}>
                       <div style={{fontSize:11,color:'#999',marginBottom:4}}><span style={{color:c.color,marginRight:4}}>{c.icon}</span>{c.label}</div>
                       <div style={{fontSize:18,fontWeight:700,color:c.color}}>{c.value}{c.unit||''}</div>
