@@ -73,7 +73,7 @@ export const DashboardPage: React.FC = () => {
     setLoading(true);
     try {
       const base = import.meta.env.BASE_URL;
-      const availableFiles = ['数据2026-01.csv','数据2026-02.csv','数据2026-03.csv','数据2026-04.csv','数据2026-05.csv'];
+      const availableFiles = ['数据2026-04.csv','数据2026-05.csv'];
       const year = '2026';
 
       // 并行加载+解密所有文件
