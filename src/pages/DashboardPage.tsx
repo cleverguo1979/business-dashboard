@@ -103,6 +103,7 @@ export const DashboardPage: React.FC = () => {
         }
       }
       message.success(`成功加载 ${loadedCount}/${availableFiles.length} 个月份数据`);
+    message.destroy("load");
       if (loadedCount > 0) {
         createDimensionsFromColumns([
           { key: '业务下单时间', label: '业务下单时间', type: 'string' as const },
