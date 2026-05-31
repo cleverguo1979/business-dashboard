@@ -146,14 +146,14 @@ export const DashboardPage: React.FC = () => {
 
   const pieOption = useMemo((): EChartsOption => ({
     tooltip: { trigger: 'item', formatter: '{b}: {c} 单 ({d}%)' },
-    legend: { bottom: 0 },
+    legend: { bottom: 0, textStyle: { fontSize: 12 } },
     series: [{
-      type: 'pie', radius: ['40%', '70%'], center: ['50%', '45%'],
+      type: 'pie', radius: ['40%', '70%'], center: ['50%', '43%'],
       data: [
-        { value: pre?.expTotal || 0, name: '出口', itemStyle: { color: '#1677ff' } },
-        { value: pre?.impTotal || 0, name: '进口', itemStyle: { color: '#52c41a' } },
+        { value: pre?.expTotal || 0, name: `出口  ${pre?.expTotal || 0} 单`, itemStyle: { color: '#1677ff' } },
+        { value: pre?.impTotal || 0, name: `进口  ${pre?.impTotal || 0} 单`, itemStyle: { color: '#52c41a' } },
       ],
-      label: { formatter: '{b}\n{d}%', fontSize: 13 },
+      label: { formatter: '{d}%', fontSize: 14, fontWeight: 'bold' },
     }],
   }), [pre]);
 
@@ -222,22 +222,18 @@ export const DashboardPage: React.FC = () => {
       {/* 饼图 + 委托企业去重排行 + 问询 */}
       <Row gutter={[14, 14]} style={{ marginBottom: 12 }}>
         <Col xs={24} lg={8}>
-          <Card title="报关单进出口分布" size="small">
-            <ReactECharts option={pieOption} style={{ height: 260 }} />
-            <div style={{ textAlign: 'center', marginTop: -16 }}>
-              <Tag color="blue">出口 {(pre?.expTotal || 0)} 单</Tag>
-              <Tag color="green">进口 {(pre?.impTotal || 0)} 单</Tag>
-            </div>
+          <Card title="报关单进出口分布" size="small" style={{ height: 380 }}>
+            <ReactECharts option={pieOption} style={{ height: 340 }} />
           </Card>
         </Col>
         <Col xs={24} lg={8}>
-          <Card title={<Space><TrophyOutlined style={{ color: '#fa8c16' }} />委托企业 单月委托量 TOP20</Space>} size="small" extra={<Tag color="blue">去重业务号</Tag>}>
+          <Card title={<Space><TrophyOutlined style={{ color: '#fa8c16' }} />委托企业 单月委托量 TOP20</Space>} size="small" extra={<Tag color="blue">去重业务号</Tag>} style={{ height: 380 }}>
             <Table dataSource={entrustUniqueRank} rowKey="name" size="small" pagination={{ pageSize: 10, size: 'small' }}
               columns={[{ title: '#', width: 35, render: (_: any, __: any, i: number) => <Tag color={i < 3 ? 'gold' : 'default'}>{i + 1}</Tag> }, { title: '企业', dataIndex: 'name', ellipsis: true }, { title: '业务号数', dataIndex: 'count', width: 75, sorter: (a: any, b: any) => a.count - b.count, defaultSortOrder: 'descend', render: (v: number) => <b>{v}</b> }]} />
           </Card>
         </Col>
         <Col xs={24} lg={8}>
-          <Card title={<Space><MessageOutlined style={{ color: '#722ed1' }} />委托企业 问询次数 TOP20</Space>} size="small">
+          <Card title={<Space><MessageOutlined style={{ color: '#722ed1' }} />委托企业 问询次数 TOP20</Space>} size="small" style={{ height: 380 }}>
             <Table dataSource={inquiryRank.slice(0, 20)} rowKey="name" size="small" pagination={{ pageSize: 10, size: 'small' }}
               columns={[{ title: '#', width: 35, render: (_: any, __: any, i: number) => <Tag color={i < 3 ? 'purple' : 'default'}>{i + 1}</Tag> }, { title: '企业', dataIndex: 'name', ellipsis: true }, { title: '问询次数', dataIndex: 'count', width: 80, sorter: (a: any, b: any) => a.count - b.count, defaultSortOrder: 'descend', render: (v: number) => <Tag color="purple">{v} 次</Tag> }]} />
           </Card>
