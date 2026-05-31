@@ -90,13 +90,13 @@ export const StaffAnalysisPage: React.FC = () => {
     { title: '#', width:35, render:(_:any,__:any,i:number)=><Tag color={i<3?'gold':'default'}>{i+1}</Tag> },
     { title: '姓名', dataIndex:'name', width:75 },
     { title: "标准化报关单量", dataIndex:'total', width:65, sorter:(a:any,b:any)=>a.total-b.total, defaultSortOrder:'descend' as const, render:(v:number)=><b>{v}</b> },
-    { title: '出口', dataIndex:'expTotal', width:50 },
-    { title: '进口', dataIndex:'impTotal', width:50 },
-    { title: '制单时效(全量)', key:'avg', width:105, render:(_:any,r:StaffProfile)=>r.docPrepCount>0?<Tag color="blue">{fmtSec(r.docPrepSum/r.docPrepCount)}</Tag>:'-' },
-    { title: '制单时效(剔除)', key:'avgC', width:105, render:(_:any,r:StaffProfile)=>r.docPrepCleanCount>0?<Tag color="green">{fmtSec(r.docPrepCleanSum/r.docPrepCleanCount)}</Tag>:'-' },
-    { title: '问询', dataIndex:'inquiryTotal', width:50 },
-    { title: '17点后', key:'a17', width:65, render:(_:any,r:StaffProfile)=><span style={{fontSize:12}}>{r.after17Total}<span style={{color:'#f5222d'}}>({pct(r.after17Total,r.total)}%)</span></span> },
-    { title: '跨日', key:'cr', width:60, render:(_:any,r:StaffProfile)=><span style={{fontSize:12}}>{r.crossTotal}<span style={{color:'#fa8c16'}}>({pct(r.crossTotal,r.total)}%)</span></span> },
+    { title: '出口', dataIndex:'expTotal', width:50, sorter:(a:any,b:any)=>a.expTotal-b.expTotal },
+    { title: '进口', dataIndex:'impTotal', width:50, sorter:(a:any,b:any)=>a.impTotal-b.impTotal },
+    { title: '制单时效(全量)', key:'avg', width:105, sorter:(a:any,b:any)=>{const aa=a.docPrepCount>0?a.docPrepSum/a.docPrepCount:Infinity;const bb=b.docPrepCount>0?b.docPrepSum/b.docPrepCount:Infinity;return aa-bb;}, render:(_:any,r:StaffProfile)=>r.docPrepCount>0?<Tag color="blue">{fmtSec(r.docPrepSum/r.docPrepCount)}</Tag>:'-' },
+    { title: '制单时效(剔除)', key:'avgC', width:105, sorter:(a:any,b:any)=>{const aa=a.docPrepCleanCount>0?a.docPrepCleanSum/a.docPrepCleanCount:Infinity;const bb=b.docPrepCleanCount>0?b.docPrepCleanSum/b.docPrepCleanCount:Infinity;return aa-bb;}, render:(_:any,r:StaffProfile)=>r.docPrepCleanCount>0?<Tag color="green">{fmtSec(r.docPrepCleanSum/r.docPrepCleanCount)}</Tag>:'-' },
+    { title: '问询', dataIndex:'inquiryTotal', width:50, sorter:(a:any,b:any)=>a.inquiryTotal-b.inquiryTotal },
+    { title: '17点后', key:'a17', width:65, sorter:(a:any,b:any)=>a.after17Total-b.after17Total, render:(_:any,r:StaffProfile)=><span style={{fontSize:12}}>{r.after17Total}<span style={{color:'#f5222d'}}>({pct(r.after17Total,r.total)}%)</span></span> },
+    { title: '跨日', key:'cr', width:60, sorter:(a:any,b:any)=>a.crossTotal-b.crossTotal, render:(_:any,r:StaffProfile)=><span style={{fontSize:12}}>{r.crossTotal}<span style={{color:'#fa8c16'}}>({pct(r.crossTotal,r.total)}%)</span></span> },
   ];
 
   const top10Chart = useMemo(():EChartsOption => ({
