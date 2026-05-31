@@ -103,7 +103,6 @@ export const DashboardPage: React.FC = () => {
         }
       }
       message.success(`成功加载 ${loadedCount}/${availableFiles.length} 个月份数据`);
-    message.destroy("load");
       if (loadedCount > 0) {
         createDimensionsFromColumns([
           { key: '业务下单时间', label: '业务下单时间', type: 'string' as const },
@@ -188,7 +187,8 @@ export const DashboardPage: React.FC = () => {
   if (!currentDataSet) {
     if (loading) {
       return <div style={{ textAlign: 'center', marginTop: 150 }}>
-        <Spin size="large" />
+        <div style={{ display: 'inline-block', width: 48, height: 48, border: '4px solid #e8e8e8', borderTopColor: '#1677ff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         <p style={{ color: '#1677ff', marginTop: 20, fontSize: 15, fontWeight: 500 }}>正在下载并解密数据，请耐心等待...</p>
         <p style={{ color: '#999', fontSize: 12 }}>加密数据 4月+5月约 21MB，从 GitHub 拉取需要 1-2 分钟</p>
       </div>;
