@@ -242,7 +242,7 @@ export const StaffAnalysisPage: React.FC = () => {
                 const avgFull=s.docPrepCount>0?fmtSec(s.docPrepSum/s.docPrepCount):'-';
                 const avgClean=s.docPrepCleanCount>0?fmtSec(s.docPrepCleanSum/s.docPrepCleanCount):'-';
                 const cards = [
-                  {icon:<BarChartOutlined/>,label:'报关单量',value:s.total,unit:'单',color:C[0]},
+                  {icon:<BarChartOutlined/>,label:'报关单量',value:s.total,unit:'单',color:C[0],wide:true,sub:`出口${s.expTotal} + 进口${s.impTotal}`},
                   {icon:<ExportOutlined/>,label:'出口',value:s.expTotal,unit:'单',color:C[0]},
                   {icon:<ImportOutlined/>,label:'进口',value:s.impTotal,unit:'单',color:C[1]},
                   {icon:<ClockCircleOutlined/>,label:'制单时效(全量)',value:avgFull,color:C[0]},
@@ -251,11 +251,11 @@ export const StaffAnalysisPage: React.FC = () => {
                   {icon:<AlertOutlined/>,label:'跨日',value:`${s.crossTotal} 单`,sub:`${pct(s.crossTotal,s.total)}%`,color:'#fa8c16'},
                 ];
                 return cards.map((c,i)=>(
-                  <Col xs={6} sm={3} flex="1 0 140px" key={i}>
-                    <Card size="small" style={{height:78}} bodyStyle={{padding:'8px 10px',textAlign:'center'}}>
-                      <div style={{fontSize:11,color:'#999',marginBottom:4}}><span style={{color:c.color,marginRight:4}}>{c.icon}</span>{c.label}</div>
-                      <div style={{fontSize:18,fontWeight:700,color:c.color}}>{c.value}{c.unit||''}</div>
-                      {c.sub && <div style={{fontSize:11,color:'#999',marginTop:2}}>{c.sub}</div>}
+                  <Col key={i} flex={(c as any).wide ? '1 1 160px' : '1 1 120px'}>
+                    <Card size="small" style={{height:78,background:(c as any).wide?'#f0f5ff':undefined,borderColor:(c as any).wide?C[0]:undefined}} bodyStyle={{padding:'8px 10px',textAlign:'center'}}>
+                      <div style={{fontSize:11,color:'#999',marginBottom:2}}><span style={{color:c.color,marginRight:4}}>{c.icon}</span>{c.label}</div>
+                      <div style={{fontSize:(c as any).wide?20:18,fontWeight:700,color:c.color}}>{c.value}{c.unit||''}</div>
+                      {c.sub && <div style={{fontSize:10,color:'#aaa',marginTop:1}}>{c.sub}</div>}
                     </Card>
                   </Col>
                 ));
