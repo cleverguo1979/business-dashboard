@@ -207,22 +207,22 @@ export const StaffAnalysisPage: React.FC = () => {
 
       <Row gutter={[12,12]} style={{marginBottom:12}}>
         <Col xs={24} lg={14}>
-          <Card title={<span style={{fontSize:13}}><TrophyOutlined style={{color:C[3],marginRight:4}}/>制单员工作量 TOP10 <span style={{fontWeight:400,color:'#999',fontSize:11}}>（基于{monthCount}个月）</span></span>} size="small" style={{height:440}}>
+          <Card title={<span style={{fontSize:13}}><TrophyOutlined style={{color:C[3],marginRight:4}}/>制单员工作量 TOP10 <span style={{fontWeight:400,color:'#999',fontSize:11}}>（基于{monthCount}个月）</span></span>} size="small" style={{height:'100%'}}>
             <ReactECharts option={top10Chart} style={{height:330}}/>
           </Card>
         </Col>
-        <Col xs={24} lg={10}>
-          <Card title={<Space><BarChartOutlined/>工作量负荷分布 <Tooltip title="每位制单员在全时间段内的标准化报关单量，按区间统计人数，反映团队整体负荷结构"><QuestionCircleOutlined style={{color:'#bbb',fontSize:12}}/></Tooltip></Space>} size="small" style={{marginBottom:12}}>
-            <ReactECharts option={workloadChart} style={{height:160}}/>
+        <Col xs={24} lg={10} style={{display:'flex',flexDirection:'column'}}>
+          <Card title={<Space><BarChartOutlined/>工作量负荷分布 <Tooltip title="每位制单员在全时间段内的标准化报关单量，按区间统计人数，反映团队整体负荷结构"><QuestionCircleOutlined style={{color:'#bbb',fontSize:12}}/></Tooltip></Space>} size="small" style={{flex:1,marginBottom:12}}>
+            <ReactECharts option={workloadChart} style={{height:140}}/>
           </Card>
-          <Card title={<Space><ClockCircleOutlined/>制单时效分布 <Tooltip title="按制单员平均制单时长区间统计人数。全量=所有数据，剔除=排除跨日制单异常"><QuestionCircleOutlined style={{color:'#bbb',fontSize:12}}/></Tooltip></Space>} size="small"
+          <Card title={<Space><ClockCircleOutlined/>制单时效分布 <Tooltip title="按制单员平均制单时长区间统计人数。全量=所有数据，剔除=排除跨日制单异常"><QuestionCircleOutlined style={{color:'#bbb',fontSize:12}}/></Tooltip></Space>} size="small" style={{flex:1}}
             extra={
               <Select size="small" style={{width:100}} value={speedMode} onChange={v=>setSpeedMode(v)} options={[
                 {label:'全量统计',value:'full'},{label:'剔除异常',value:'clean'}
               ]}/>
             }>
-            <ReactECharts option={speedChart} style={{height:140}}/>
-            {speedExcluded > 0 && <div style={{fontSize:10,color:'#999',textAlign:'center',marginTop:-8}}>注：{speedExcluded} 人无{speedMode==='clean'?'剔除异常后':''}制单数据，未纳入统计</div>}
+            <ReactECharts option={speedChart} style={{height:120}}/>
+            {speedExcluded > 0 && <div style={{fontSize:10,color:'#999',textAlign:'center',marginTop:-4}}>注：{speedExcluded} 人无{speedMode==='clean'?'剔除异常后':''}制单数据，未纳入统计</div>}
           </Card>
         </Col>
       </Row>
