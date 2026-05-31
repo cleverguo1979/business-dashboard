@@ -238,7 +238,7 @@ export const OverviewPage: React.FC = () => {
       {/* ==================== 智能风控分析 ==================== */}
       <Card
         size="small"
-        style={{ marginTop: 0, marginBottom: 12, borderLeft: '4px solid #722ed1' }}
+        style={{ marginTop: 12, marginBottom: 12, borderLeft: '4px solid #722ed1' }}
         title={
           <Space>
             <SafetyOutlined style={{ color: '#722ed1' }} />
