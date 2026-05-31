@@ -186,11 +186,10 @@ export const StaffAnalysisPage: React.FC = () => {
       </Card>
 
       <Row gutter={[12,12]} style={{marginBottom:12}}>
-        <Col xs={12} sm={3}><Card size="small"><Statistic title="涉及标准化业务的制单员总数" value={staffList.length} suffix="人" prefix={<TeamOutlined/>} valueStyle={{color:C[0],fontWeight:700,fontSize:20}}/></Card></Col>
-        <Col xs={12} sm={3}><Card size="small"><Statistic title="标准化报关单量" value={totalOrders} suffix="单" prefix={<BarChartOutlined/>} valueStyle={{color:C[0]}}/></Card></Col>
-        <Col xs={12} sm={3}><Card size="small"><Statistic title="月人均单量" value={monthCount>0?Math.round(avgPerPerson/monthCount):0} suffix={`单/月`} prefix={<TrophyOutlined/>}/></Card></Col>
-        <Col xs={12} sm={6}>
-          <Card size="small">
+        <Col xs={12} sm={3}><Card size="small" style={{height:100}}><Statistic title="涉及标准化业务的制单员总数" value={staffList.length} suffix="人" prefix={<TeamOutlined/>} valueStyle={{color:C[0],fontWeight:700,fontSize:20}}/></Card></Col>
+        <Col xs={12} sm={3}><Card size="small" style={{height:100}}><Statistic title="标准化报关单量" value={totalOrders} suffix="单" prefix={<BarChartOutlined/>} valueStyle={{color:C[0]}}/></Card></Col>
+        <Col xs={12} sm={3}><Card size="small" style={{height:100}}><Statistic title="月人均单量" value={monthCount>0?Math.round(avgPerPerson/monthCount):0} suffix={`单/月`} prefix={<TrophyOutlined/>}/></Card></Col>
+        <Col xs={12} sm={6}><Card size="small" style={{height:100}}>
             <div style={{fontSize:12,color:'#666',marginBottom:4}}>人均制单时效 <span style={{color:'#999',fontSize:10}}>（基于{monthCount}个月）</span></div>
             <div style={{display:'flex',justifyContent:'space-around',alignItems:'baseline'}}>
               <div style={{textAlign:'center'}}>

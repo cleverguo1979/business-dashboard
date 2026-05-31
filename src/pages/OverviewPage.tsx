@@ -314,7 +314,7 @@ export const OverviewPage: React.FC = () => {
         <Card
           size="small"
           title={<Space><SafetyOutlined style={{ color: '#722ed1' }} />重点客户风险明细 TOP20</Space>}
-          style={{ background: '#fafafa' }}
+          style={{ background: '#fafafa', marginTop: 12 }}
         >
           <Table<CustomerRiskProfile & { rank: number }>
             dataSource={riskTableData}
