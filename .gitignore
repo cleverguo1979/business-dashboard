@@ -28,3 +28,5 @@ public/工作效率统计报表.xls
 deploy-oss.cjs
 ossutil*
 ossutil.zip
+docs/
+public/数据*.csv
