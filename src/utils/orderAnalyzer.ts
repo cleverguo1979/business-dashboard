@@ -633,6 +633,11 @@ export interface PreprocessedData {
   entrustInquiryCounts: Map<string, number>;
   // 境内收发货人异常统计: shipper → 进/出口 → { after17, crossDate }
   shipperAnomalyCounts: Map<string, Map<string, { after17: number; crossDate: number }>>;
+  // 进出口总量
+  expTotal: number;
+  impTotal: number;
+  // 委托企业 去重业务号 排行
+  entrustUniqueBizRank: EntityRank[];
 }
 
 export function enrichPreprocessed(pre: PreprocessedData): PreprocessedData {
@@ -677,7 +682,28 @@ export function enrichPreprocessed(pre: PreprocessedData): PreprocessedData {
     if (orderTime && reviewTime && orderTime.toDateString() !== reviewTime.toDateString()) sa.crossDate++;
   }
 
-  return { ...pre, shipperImpExpDocPrep, entrustInquiryCounts, shipperAnomalyCounts };
+  // 进出口总量
+  let expTotal = 0, impTotal = 0;
+  for (const r of pre.records) {
+    const t = (r['进/口类型'] || '').toString().trim();
+    if (t === 'E') expTotal++;
+    else if (t === 'I') impTotal++;
+  }
+
+  // 委托企业 去重业务号 排行
+  const entrustBizSet = new Map<string, Set<string>>();
+  for (const r of pre.records) {
+    const entrust = r['委托企业'] || '(空)';
+    const bizNo = r['业务号'] || '';
+    if (!bizNo) continue;
+    if (!entrustBizSet.has(entrust)) entrustBizSet.set(entrust, new Set());
+    entrustBizSet.get(entrust)!.add(bizNo);
+  }
+  const entrustUniqueBizRank: EntityRank[] = [...entrustBizSet.entries()]
+    .map(([name, set]) => ({ name, count: set.size }))
+    .sort((a, b) => b.count - a.count);
+
+  return { ...pre, shipperImpExpDocPrep, entrustInquiryCounts, shipperAnomalyCounts, expTotal, impTotal, entrustUniqueBizRank };
 }
 
 export function preprocessRecords(rawRecords: DataRecord[]): PreprocessedData {
@@ -815,6 +841,9 @@ export function preprocessRecords(rawRecords: DataRecord[]): PreprocessedData {
     shipperImpExpDocPrep: new Map(),
     entrustInquiryCounts: new Map(),
     shipperAnomalyCounts: new Map(),
+    expTotal: 0,
+    impTotal: 0,
+    entrustUniqueBizRank: [],
   };
 }
 

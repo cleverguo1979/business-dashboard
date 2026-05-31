@@ -49,7 +49,6 @@ function buildTimeBar(data: { range: string; count: number }[], color: string, t
 }
 
 export const DashboardPage: React.FC = () => {
-  // ====== 所有 hooks 必须在任何 return 之前 ======
   const dataSets = useDataStore(s => s.dataSets);
   const currentDataSetId = useDataStore(s => s.currentDataSetId);
   const setCurrentDataSet = useDataStore(s => s.setCurrentDataSet);
@@ -92,8 +91,7 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => { if (pre && pre.availableDates.length && !selectedDate) setSelectedDate(pre.availableDates[pre.availableDates.length - 1]); }, [pre, selectedDate]);
   useEffect(() => { if (pre && pre.after17AvailableDates.length && !after17Date) setAfter17Date(pre.after17AvailableDates[pre.after17AvailableDates.length - 1]); }, [pre, after17Date]);
 
-  // 所有 useMemo 都在这里（pre 可能为 null，需要兜底）
-  const ex = false; // 汇总卡片已显示剔除异常值，此处固定显示全部数据
+  const ex = false;
   const total = pre?.total || 0;
   const acceptAll = useMemo(() => pre && pre.acceptDurations.length > 0 ? pre.acceptDurations.reduce((a, b) => a + b, 0) / pre.acceptDurations.length : 0, [pre]);
   const acceptClean = useMemo(() => pre && pre.acceptDurationsClean.length > 0 ? pre.acceptDurationsClean.reduce((a, b) => a + b, 0) / pre.acceptDurationsClean.length : 0, [pre]);
@@ -109,7 +107,6 @@ export const DashboardPage: React.FC = () => {
   const shipperRank = useMemo(() => pre ? [...pre.shipperCounts.entries()].map(([n, c]) => ({ name: n, count: c })).sort((a, b) => b.count - a.count).slice(0, 25) : [], [pre]);
   const inquiryRank = useMemo(() => pre ? [...pre.entrustInquiryCounts.entries()].filter(([, c]) => c > 0).map(([n, c]) => ({ name: n, count: c })).sort((a, b) => b.count - a.count).slice(0, 25) : [], [pre]);
 
-  // 异常+17点后 最多 TOP30（按进出口拆分呈现）
   const anomalyTop30 = useMemo(() => {
     if (!pre) return [];
     return [...pre.shipperCounts.entries()].map(([name, total]) => {
@@ -124,15 +121,7 @@ export const DashboardPage: React.FC = () => {
       const anomalyTotal = expAfter17 + expCross + impAfter17 + impCross;
       const expAvg = exp && expDoc > 0 ? exp.docSum / expDoc : Infinity;
       const impAvg = imp && impDoc > 0 ? imp.docSum / impDoc : Infinity;
-      return {
-        name, total, anomalyTotal,
-        expTotal, expDoc, expAvgStr: expDoc > 0 ? fmtSec(expAvg) : '-',
-        impTotal, impDoc, impAvgStr: impDoc > 0 ? fmtSec(impAvg) : '-',
-        expAfter17, expAfter17Pct: expTotal > 0 ? pct(expAfter17, expTotal) : '0',
-        expCross, expCrossPct: expTotal > 0 ? pct(expCross, expTotal) : '0',
-        impAfter17, impAfter17Pct: impTotal > 0 ? pct(impAfter17, impTotal) : '0',
-        impCross, impCrossPct: impTotal > 0 ? pct(impCross, impTotal) : '0',
-      };
+      return { name, total, anomalyTotal, expTotal, expDoc, expAvgStr: expDoc > 0 ? fmtSec(expAvg) : '-', impTotal, impDoc, impAvgStr: impDoc > 0 ? fmtSec(impAvg) : '-', expAfter17, expAfter17Pct: expTotal > 0 ? pct(expAfter17, expTotal) : '0', expCross, expCrossPct: expTotal > 0 ? pct(expCross, expTotal) : '0', impAfter17, impAfter17Pct: impTotal > 0 ? pct(impAfter17, impTotal) : '0', impCross, impCrossPct: impTotal > 0 ? pct(impCross, impTotal) : '0' };
     }).sort((a, b) => b.anomalyTotal - a.anomalyTotal).slice(0, 30);
   }, [pre]);
 
@@ -155,33 +144,45 @@ export const DashboardPage: React.FC = () => {
   const docChart = useMemo(() => buildTimeBar(docData, C[2], dataTotal), [docData, dataTotal]);
   const peakWins = useMemo(() => concData.filter(w => w.count >= 20), [concData]);
 
-  // ====== 所有 return 在 hooks 之后 ======
+  const pieOption = useMemo((): EChartsOption => ({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} 单 ({d}%)' },
+    legend: { bottom: 0 },
+    series: [{
+      type: 'pie', radius: ['40%', '70%'], center: ['50%', '45%'],
+      data: [
+        { value: pre?.expTotal || 0, name: '出口', itemStyle: { color: '#1677ff' } },
+        { value: pre?.impTotal || 0, name: '进口', itemStyle: { color: '#52c41a' } },
+      ],
+      label: { formatter: '{b}\n{d}%', fontSize: 13 },
+    }],
+  }), [pre]);
+
+  const entrustUniqueRank = useMemo(() => pre?.entrustUniqueBizRank?.slice(0, 20) || [], [pre]);
+
   if (!currentDataSet) {
     return <div style={{ textAlign: 'center', marginTop: 100 }}><Empty description="暂无数据" image={Empty.PRESENTED_IMAGE_SIMPLE} /><Spin spinning={loading}><Button type="primary" size="large" icon={<ReloadOutlined />} onClick={handleLoad} loading={loading}>一键加载报表</Button></Spin></div>;
   }
-  if (!pre || computing) {
-    return <div style={{ textAlign: 'center', marginTop: 150 }}><Spin size="large" /><p style={{ color: '#999', marginTop: 16 }}>分析 {allRecords.length} 条数据...</p></div>;
-  }
+  if (!pre || computing) return <div style={{ textAlign: 'center', marginTop: 150 }}><Spin size="large" /><p style={{ color: '#999', marginTop: 16 }}>分析 {allRecords.length} 条数据...</p></div>;
+
+  const CARD_H = 96;
 
   return (
     <div>
       <Card size="small" style={{ marginBottom: 12 }}>
         <Row justify="space-between" align="middle">
-          <Col><Space><span style={{ fontWeight: 600, fontSize: 15 }}>📋 业务数据看板</span><Select size="small" style={{ width: 260 }} value={currentDataSetId} onChange={v => setCurrentDataSet(v)} options={dataSets.map(ds => ({ label: `${ds.name} (${ds.records.length}条)`, value: ds.id }))} /></Space></Col>
-          <Col>
-            <Tooltip title="「跨日制单」指业务下单日期与首次提交复核日期不在同一天的订单，此类订单制单耗时异常偏高。汇总卡片中已标注剔除异常后的平均耗时，下方维度图表展示全部数据。">
-              <span style={{ fontSize: 12, color: '#999', cursor: 'help', borderBottom: '1px dashed #999' }}>ⓘ 剔除异常说明</span>
-            </Tooltip>
-          </Col>
+          <Col><Space><span style={{ fontWeight: 600, fontSize: 15 }}>业务数据看板</span><Select size="small" style={{ width: 260 }} value={currentDataSetId} onChange={v => setCurrentDataSet(v)} options={dataSets.map(ds => ({ label: `${ds.name} (${ds.records.length}条)`, value: ds.id }))} /></Space></Col>
+          <Col><span style={{ fontSize: 13, color: '#666' }}>{pre.dateRange.start} ~ {pre.dateRange.end}</span></Col>
         </Row>
       </Card>
 
       <Row gutter={[8, 8]} style={{ marginBottom: 12 }}>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: 96 }}><Statistic title={<span><BarChartOutlined /> 报关单总数</span>} value={total} suffix="单" valueStyle={{ color: '#1677ff', fontWeight: 700, fontSize: 20 }} /></Card></Col>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: 96 }}><Statistic title="日期范围" value={`${pre.dateRange.start} ~ ${pre.dateRange.end}`} valueStyle={{ fontSize: 12 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: CARD_H }}><Statistic title={<span><BarChartOutlined /> 报关单总数</span>} value={total} suffix="单" valueStyle={{ color: '#1677ff', fontWeight: 700, fontSize: 20 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: CARD_H }}><Statistic title="日期范围" value={`${pre.dateRange.start} ~ ${pre.dateRange.end}`} valueStyle={{ fontSize: 12 }} /></Card></Col>
         <Col xs={12} sm={8} md={6} lg={3} xl={3}>
-          <Card size="small" style={{ height: 96 }}>
-            <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}><ClockCircleOutlined /> 平均接单耗时</div>
+          <Card size="small" style={{ height: CARD_H }}>
+            <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>
+              <ClockCircleOutlined /> 平均接单耗时 <Tooltip title="「全量」全部数据平均值；「剔除异常」排除跨日制单等异常数据后的平均值"><span style={{ fontSize: 10, color: '#bbb', cursor: 'help' }}>ⓘ</span></Tooltip>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <div style={{ textAlign: 'center', flex: 1 }}>
                 <div style={{ fontSize: 10, color: '#999' }}>全量</div>
@@ -196,8 +197,10 @@ export const DashboardPage: React.FC = () => {
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6} lg={3} xl={3}>
-          <Card size="small" style={{ height: 96 }}>
-            <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}><FileTextOutlined /> 平均制单时长</div>
+          <Card size="small" style={{ height: CARD_H }}>
+            <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>
+              <FileTextOutlined /> 平均制单时长 <Tooltip title="「全量」全部数据平均值；「剔除异常」排除跨日制单等异常数据后的平均值"><span style={{ fontSize: 10, color: '#bbb', cursor: 'help' }}>ⓘ</span></Tooltip>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <div style={{ textAlign: 'center', flex: 1 }}>
                 <div style={{ fontSize: 10, color: '#999' }}>全量</div>
@@ -211,11 +214,37 @@ export const DashboardPage: React.FC = () => {
             </div>
           </Card>
         </Col>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: 96 }}><Statistic title={<span><ThunderboltOutlined /> 高峰 {peakInfo.hour}</span>} value={`${peakInfo.count} 单 (${pct(peakInfo.count, total)}%)`} valueStyle={{ color: '#f5222d', fontWeight: 700, fontSize: 18 }} /></Card></Col>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: 96, background: '#fff7e6' }}><Statistic title={<span><AlertOutlined style={{ color: '#fa8c16' }} /> 跨日制单</span>} value={`${pre.crossDateCount} 单 (${pct(pre.crossDateCount, total)}%)`} valueStyle={{ color: '#fa8c16', fontWeight: 600, fontSize: 18 }} /></Card></Col>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: 96, background: '#fff1f0' }}><Statistic title={<span><WarningOutlined style={{ color: '#f5222d' }} /> 17:00后下单</span>} value={`${pre.after17Count} 单 (${pct(pre.after17Count, total)}%)`} valueStyle={{ color: '#f5222d', fontWeight: 600, fontSize: 18 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: CARD_H }}><Statistic title={<span><ThunderboltOutlined /> 高峰 {peakInfo.hour}</span>} value={`${peakInfo.count} 单 (${pct(peakInfo.count, total)}%)`} valueStyle={{ color: '#f5222d', fontWeight: 700, fontSize: 18 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: CARD_H, background: '#fff7e6' }}><Statistic title={<span><AlertOutlined style={{ color: '#fa8c16' }} /> 跨日制单</span>} value={`${pre.crossDateCount} 单 (${pct(pre.crossDateCount, total)}%)`} valueStyle={{ color: '#fa8c16', fontWeight: 600, fontSize: 18 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: CARD_H, background: '#fff1f0' }}><Statistic title={<span><WarningOutlined style={{ color: '#f5222d' }} /> 17:00后</span>} value={`${pre.after17Count} 单 (${pct(pre.after17Count, total)}%)`} valueStyle={{ color: '#f5222d', fontWeight: 600, fontSize: 18 }} /></Card></Col>
       </Row>
 
+      {/* 饼图 + 委托企业去重排行 + 问询 */}
+      <Row gutter={[14, 14]} style={{ marginBottom: 12 }}>
+        <Col xs={24} lg={8}>
+          <Card title="报关单进出口分布" size="small">
+            <ReactECharts option={pieOption} style={{ height: 260 }} />
+            <div style={{ textAlign: 'center', marginTop: -16 }}>
+              <Tag color="blue">出口 {(pre?.expTotal || 0)} 单</Tag>
+              <Tag color="green">进口 {(pre?.impTotal || 0)} 单</Tag>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} lg={8}>
+          <Card title={<Space><TrophyOutlined style={{ color: '#fa8c16' }} />委托企业 单月委托量 TOP20</Space>} size="small" extra={<Tag color="blue">去重业务号</Tag>}>
+            <Table dataSource={entrustUniqueRank} rowKey="name" size="small" pagination={{ pageSize: 10, size: 'small' }}
+              columns={[{ title: '#', width: 35, render: (_: any, __: any, i: number) => <Tag color={i < 3 ? 'gold' : 'default'}>{i + 1}</Tag> }, { title: '企业', dataIndex: 'name', ellipsis: true }, { title: '业务号数', dataIndex: 'count', width: 75, sorter: (a: any, b: any) => a.count - b.count, defaultSortOrder: 'descend', render: (v: number) => <b>{v}</b> }]} />
+          </Card>
+        </Col>
+        <Col xs={24} lg={8}>
+          <Card title={<Space><MessageOutlined style={{ color: '#722ed1' }} />委托企业 问询次数 TOP20</Space>} size="small">
+            <Table dataSource={inquiryRank.slice(0, 20)} rowKey="name" size="small" pagination={{ pageSize: 10, size: 'small' }}
+              columns={[{ title: '#', width: 35, render: (_: any, __: any, i: number) => <Tag color={i < 3 ? 'purple' : 'default'}>{i + 1}</Tag> }, { title: '企业', dataIndex: 'name', ellipsis: true }, { title: '问询次数', dataIndex: 'count', width: 80, sorter: (a: any, b: any) => a.count - b.count, defaultSortOrder: 'descend', render: (v: number) => <Tag color="purple">{v} 次</Tag> }]} />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 境内收发货人 + 异常排行 */}
       <Row gutter={[14, 14]} style={{ marginBottom: 12 }}>
         <Col xs={24} lg={12}>
           <Card title={<Space><TrophyOutlined style={{ color: '#fa8c16' }} />境内收发货人 业务量 TOP20</Space>} size="small">
@@ -224,40 +253,29 @@ export const DashboardPage: React.FC = () => {
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title={<Space><MessageOutlined style={{ color: '#722ed1' }} />委托企业 问询次数 TOP20</Space>} size="small">
-            <Table dataSource={inquiryRank.slice(0, 20)} rowKey="name" size="small" pagination={{ pageSize: 10, size: 'small' }}
-              columns={[{ title: '#', width: 40, render: (_: any, __: any, i: number) => <Tag color={i < 3 ? 'purple' : 'default'}>{i + 1}</Tag> }, { title: '企业', dataIndex: 'name', ellipsis: true }, { title: '问询次数', dataIndex: 'count', sorter: (a: any, b: any) => a.count - b.count, defaultSortOrder: 'descend', render: (v: number) => <Tag color="purple">{v} 次</Tag> }]} />
+          <Card title={<Space><AlertOutlined style={{ color: '#f5222d' }} />境内收发货人 异常+17点后 TOP30</Space>} size="small">
+            <Table dataSource={anomalyTop30.slice(0, 20)} rowKey="name" size="small" pagination={{ pageSize: 10, size: 'small' }} scroll={{ x: 500 }}
+              columns={[
+                { title: '#', width: 35, render: (_: any, __: any, i: number) => <Tag color={i < 3 ? 'red' : 'default'}>{i + 1}</Tag> },
+                { title: '企业', dataIndex: 'name', ellipsis: true, width: 120 },
+                { title: '总量', dataIndex: 'total', width: 55, render: (v: number) => <b>{v}</b> },
+                { title: '异常', dataIndex: 'anomalyTotal', width: 55, sorter: (a: any, b: any) => a.anomalyTotal - b.anomalyTotal, defaultSortOrder: 'descend', render: (v: number) => <Tag color="red">{v}</Tag> },
+                { title: '出口17点后', dataIndex: 'expAfter17', width: 80, render: (v: number, r: any) => <span style={{ fontSize: 11 }}>{v}<span style={{ color: '#f5222d' }}>({r.expAfter17Pct}%)</span></span> },
+                { title: '出口跨日', dataIndex: 'expCross', width: 75, render: (v: number, r: any) => <span style={{ fontSize: 11 }}>{v}<span style={{ color: '#fa8c16' }}>({r.expCrossPct}%)</span></span> },
+              ]}
+            />
           </Card>
         </Col>
       </Row>
 
-      <Card
-        title={<Space><AlertOutlined style={{ color: '#f5222d' }} />境内收发货人 异常+17点后 最多 TOP30</Space>}
-        extra={<Tag color="red">按进出口拆分 | 17点后+跨日总量降序</Tag>}
-        size="small" style={{ marginBottom: 12 }}
-      >
-        <Table dataSource={anomalyTop30} rowKey="name" size="small" pagination={{ pageSize: 15, size: 'small' }} scroll={{ x: 800 }}
-          columns={[
-            { title: '#', width: 35, render: (_: any, __: any, i: number) => <Tag color={i < 3 ? 'red' : 'default'}>{i + 1}</Tag> },
-            { title: '企业', dataIndex: 'name', ellipsis: true, width: 160, fixed: 'left' as const },
-            { title: '总量', dataIndex: 'total', width: 60, render: (v: number) => <b>{v}</b> },
-            { title: '异常合计', dataIndex: 'anomalyTotal', width: 75, sorter: (a: any, b: any) => a.anomalyTotal - b.anomalyTotal, defaultSortOrder: 'descend', render: (v: number) => <Tag color="red">{v}</Tag> },
-            { title: '出口量', dataIndex: 'expTotal', width: 60 },
-            { title: '出口17点后', dataIndex: 'expAfter17', width: 85, render: (v: number, r: any) => <span style={{ fontSize: 11 }}>{v}<span style={{ color: '#f5222d' }}>({r.expAfter17Pct}%)</span></span> },
-            { title: '出口跨日', dataIndex: 'expCross', width: 80, render: (v: number, r: any) => <span style={{ fontSize: 11 }}>{v}<span style={{ color: '#fa8c16' }}>({r.expCrossPct}%)</span></span> },
-            { title: '进口量', dataIndex: 'impTotal', width: 60 },
-            { title: '进口17点后', dataIndex: 'impAfter17', width: 85, render: (v: number, r: any) => <span style={{ fontSize: 11 }}>{v}<span style={{ color: '#f5222d' }}>({r.impAfter17Pct}%)</span></span> },
-            { title: '进口跨日', dataIndex: 'impCross', width: 80, render: (v: number, r: any) => <span style={{ fontSize: 11 }}>{v}<span style={{ color: '#fa8c16' }}>({r.impCrossPct}%)</span></span> },
-          ]}
-        />
-      </Card>
-
-      <Card title={<Space>📊 业务下单时间分布<Tag color="blue">{activeHourly.reduce((s, d) => s + d.count, 0)} 单</Tag></Space>}
+      {/* 维度一 */}
+      <Card title={<Space>业务下单时间分布<Tag color="blue">{activeHourly.reduce((s, d) => s + d.count, 0)} 单</Tag></Space>}
         extra={<Space><Radio.Group value={viewMode} onChange={e => setViewMode(e.target.value)} optionType="button" buttonStyle="solid" size="small"><Radio.Button value="all">全部</Radio.Button><Radio.Button value="daily">按日</Radio.Button></Radio.Group>{viewMode === 'daily' && <Select size="small" style={{ width: 130 }} value={selectedDate} onChange={setSelectedDate} options={pre.availableDates.map(d => ({ label: d, value: d }))} />}</Space>}
         style={{ marginBottom: 12 }}>
         <ReactECharts option={hourlyChart} style={{ height: 260 }} />
       </Card>
 
+      {/* 维度二+三 */}
       <Row gutter={[14, 14]} style={{ marginBottom: 12 }}>
         <Col xs={24} lg={12}>
           <Card title={<Space><ClockCircleOutlined />接单耗时</Space>} extra={<Tag color="green">下单→接单</Tag>}>
@@ -275,6 +293,7 @@ export const DashboardPage: React.FC = () => {
         </Col>
       </Row>
 
+      {/* 17:00后 + 高并发 */}
       <Row gutter={[14, 14]}>
         <Col xs={24} lg={12}>
           <Card title={<Space><WarningOutlined style={{ color: '#f5222d' }} />17:00后下单 {pre.after17Count}单 ({pct(pre.after17Count, total)}%)</Space>}
