@@ -114,7 +114,7 @@ export const StaffAnalysisPage: React.FC = () => {
       series:[
         {name:'出口',type:'line',data:months.map(([,s])=>s.exp),smooth:true,symbol:'circle'},
         {name:'进口',type:'line',data:months.map(([,s])=>s.imp),smooth:true,symbol:'diamond'},
-        {name:'总单量',type:'line',data:months.map(([,s])=>s.total),smooth:true,symbol:'triangle',lineStyle:{width:3}},
+        {name:'报关单量',type:'line',data:months.map(([,s])=>s.total),smooth:true,symbol:'triangle',lineStyle:{width:3}},
       ],
     };
   },[selectedProfile]);
@@ -205,7 +205,7 @@ export const StaffAnalysisPage: React.FC = () => {
           </Card>
         </Col>
         <Col xs={24} lg={10}>
-          <Card title={<Space><BarChartOutlined/>工作量负荷分布 <Tooltip title="每位制单员在全时间段内的总单量，按区间统计人数，反映团队整体负荷结构"><QuestionCircleOutlined style={{color:'#bbb',fontSize:12}}/></Tooltip></Space>} size="small" style={{marginBottom:12}}>
+          <Card title={<Space><BarChartOutlined/>工作量负荷分布 <Tooltip title="每位制单员在全时间段内的标准化报关单量，按区间统计人数，反映团队整体负荷结构"><QuestionCircleOutlined style={{color:'#bbb',fontSize:12}}/></Tooltip></Space>} size="small" style={{marginBottom:12}}>
             <ReactECharts option={workloadChart} style={{height:160}}/>
           </Card>
           <Card title={<Space><ClockCircleOutlined/>制单时效分布 <Tooltip title="按制单员平均制单时长区间统计人数。全量=所有数据，剔除=排除跨日制单异常"><QuestionCircleOutlined style={{color:'#bbb',fontSize:12}}/></Tooltip></Space>} size="small"
@@ -247,7 +247,7 @@ export const StaffAnalysisPage: React.FC = () => {
             <Table dataSource={[...(selectedProfile.monthly.entries())].sort((a,b)=>a[0]-b[0]).map(([m,ms],i)=>({_key:i,month:ALL_MONTHS[m-1],...ms,avgFull:ms.docPrepCount>0?fmtSec(ms.docPrepSum/ms.docPrepCount):'-',avgClean:ms.docPrepCleanCount>0?fmtSec(ms.docPrepCleanSum/ms.docPrepCleanCount):'-'}))} rowKey="_key" size="small" pagination={false} style={{marginTop:8}}
               columns={[
                 {title:'月份',dataIndex:'month',width:55},
-                {title:'总单量',dataIndex:'total',width:60,render:(v:number)=><b>{v}</b>},
+                {title:'报关单量',dataIndex:'total',width:60,render:(v:number)=><b>{v}</b>},
                 {title:'出口',dataIndex:'exp',width:50},
                 {title:'进口',dataIndex:'imp',width:50},
                 {title:'时效(全量)',dataIndex:'avgFull',width:90,render:(v:string)=><Tag color="blue">{v}</Tag>},
