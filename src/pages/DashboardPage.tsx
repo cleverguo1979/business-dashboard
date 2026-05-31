@@ -72,39 +72,39 @@ export const DashboardPage: React.FC = () => {
   const handleLoad = React.useCallback(async () => {
     setLoading(true);
     try {
-      // 列出 public 下所有 CSV 文件
       const base = import.meta.env.BASE_URL;
-      // 从 index.html 中无法直接列出目录，改为加载已知月份
-      // 只加载存在的月份（手动维护列表，避免脏数据）
       const availableFiles = ['数据2026-01.csv','数据2026-02.csv','数据2026-03.csv','数据2026-04.csv','数据2026-05.csv'];
-      const year = '2026';
-      let loadedCount = 0;
       const pass = getPassphrase();
+      const year = '2026';
 
-      for (const fileName of availableFiles) {
+      // 并行加载所有文件
+      const results = await Promise.allSettled(availableFiles.map(async (fileName) => {
         const m = fileName.match(/(\d{2})\.csv$/)?.[1] || '';
-        try {
-          const resp = await fetch(base + fileName + '.enc');
-          if (!resp.ok) { console.warn('Fetch failed:', fileName, resp.status); continue; }
-          const buf = await resp.arrayBuffer();
-          const text = await decryptCSV(buf, pass);
-          const lines = text.split('\n').filter(l => l.trim());
-          if (lines.length < 2) { console.warn('Empty data:', fileName); continue; }
-          const headers = parseCSVLine(lines[0]);
-          const records: Record<string, any>[] = [];
-          for (let i = 1; i < lines.length; i++) {
-            const vals = parseCSVLine(lines[i]);
-            const row: Record<string, any> = {};
-            headers.forEach((h, idx) => { row[h] = vals[idx]?.trim() ?? ''; });
-            records.push(row);
-          }
-          importData(`${year}-${m}`, fileName, records);
-          loadedCount++;
-          console.log('Loaded:', fileName, records.length, 'rows');
-        } catch (e) { console.error('Load error:', fileName, e); }
-      }
+        const resp = await fetch(base + fileName + '.enc');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const buf = await resp.arrayBuffer();
+        const text = await decryptCSV(buf, pass);
+        const lines = text.split('\n').filter(l => l.trim());
+        if (lines.length < 2) throw new Error('Empty');
+        const headers = parseCSVLine(lines[0]);
+        const records: Record<string, any>[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const vals = parseCSVLine(lines[i]);
+          const row: Record<string, any> = {};
+          headers.forEach((h, idx) => { row[h] = vals[idx]?.trim() ?? ''; });
+          records.push(row);
+        }
+        return { month: m, fileName, records };
+      }));
 
-      message.success(`成功加载 ${loadedCount}/5 个月份数据`);
+      let loadedCount = 0;
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          importData(`${year}-${r.value.month}`, r.value.fileName, r.value.records);
+          loadedCount++;
+        }
+      }
+      message.success(`成功加载 ${loadedCount}/${availableFiles.length} 个月份数据`);
       if (loadedCount > 0) {
         createDimensionsFromColumns([
           { key: '业务下单时间', label: '业务下单时间', type: 'string' as const },
