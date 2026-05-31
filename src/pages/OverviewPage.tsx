@@ -58,16 +58,17 @@ export const OverviewPage: React.FC = () => {
       const month = extractMonth(ds.name); if(month===null||month<1||month>12) continue;
       const s = slots[month-1]; s.hasData = true;
       const entrustCounts = new Map<string,number>();
+      s.total = ds.records.length;
       for(const r of ds.records){
         const entrust = r['委托企业']||'(空)'; entrustCounts.set(entrust,(entrustCounts.get(entrust)||0)+1);
         const ot=parseTime(r['业务下单时间']), at=parseTime(r['接单时间']), rt=parseTime(r['首次提交复核时间']);
         const isCross=ot&&rt?ot.toDateString()!==rt.toDateString():false;
-        const isExp = (r['进/口类型']||'').toString().trim()==='E';
-        const isImp = (r['进/口类型']||'').toString().trim()==='I';
+        const rawType = (r['进/口类型']||'').toString().trim();
+        const isExp = rawType==='E'; const isImp = rawType==='I';
         const stats = isExp ? s.exp : isImp ? s.imp : null;
         if(ot){ if(ot.getHours()>=17) s.after17++; }
-        if(ot&&at){ const d=(at.getTime()-ot.getTime())/1000; if(d>=0){ s.total++; if(stats){ stats.acceptAll.push(d); if(!isCross) stats.acceptClean.push(d); } } }
-        if(ot&&rt){ const d=(rt.getTime()-ot.getTime())/1000; if(d>=0){ if(stats){ stats.docAll.push(d); if(!isCross) stats.docClean.push(d); } } if(isCross) s.crossDate++; }
+        if(ot&&at){ const d=(at.getTime()-ot.getTime())/1000; if(d>=0){ if(stats) stats.acceptAll.push(d); if(!isCross&&stats) stats.acceptClean.push(d); } }
+        if(ot&&rt){ const d=(rt.getTime()-ot.getTime())/1000; if(d>=0){ if(stats) stats.docAll.push(d); if(!isCross&&stats) stats.docClean.push(d); } if(isCross) s.crossDate++; }
       }
       s.entrustCounts = entrustCounts;
     }
