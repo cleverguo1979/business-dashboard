@@ -290,20 +290,20 @@ const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
       {/* 饼图 + 委托企业去重排行 + 问询 */}
       <Row gutter={[14, 14]} style={{ marginBottom: 12 }}>
         <Col xs={24} lg={8}>
-          <Card title="标准化业务报关单 进出口分布" size="small" style={{ height: 380 }}>
+          <Card title="进出口分布" size="small" style={{ height: 390 }}>
             <ReactECharts option={pieOption} style={{ height: 340 }} />
           </Card>
         </Col>
         <Col xs={24} lg={8}>
-          <Card title={<Space><TrophyOutlined style={{ color: '#fa8c16' }} />委托企业 单月委托量 TOP20</Space>} size="small" extra={<Tag color="blue">去重业务号</Tag>} style={{ height: 380 }}>
+          <Card title={<span style={{fontSize:13}}><TrophyOutlined style={{color:"#fa8c16",marginRight:4}}/>委托企业委托量TOP20</span>} size="small" style={{ height: 390 }}>
             <Table dataSource={entrustUniqueRank} rowKey="name" size="small" pagination={{ pageSize: 10, size: 'small' }}
-              columns={[{ title: '#', width: 35, render: (_: any, __: any, i: number) => <Tag color={i < 3 ? 'gold' : 'default'}>{i + 1}</Tag> }, { title: '企业', dataIndex: 'name', ellipsis: true }, { title: '业务号数', dataIndex: 'count', width: 75, sorter: (a: any, b: any) => a.count - b.count, defaultSortOrder: 'descend', render: (v: number) => <b>{v}</b> }]} />
+              columns={[{ title: '#', width: 35, render: (_: any, __: any, i: number) => <Tag color={i < 3 ? 'gold' : 'default'}>{i + 1}</Tag> }, { title: '企业', dataIndex: 'name', ellipsis: true }, { title: '委托号', dataIndex: 'count', width: 75, sorter: (a: any, b: any) => a.count - b.count, defaultSortOrder: 'descend', render: (v: number) => <b>{v}</b> }]} />
           </Card>
         </Col>
         <Col xs={24} lg={8}>
-          <Card title={<Space><MessageOutlined style={{ color: '#722ed1' }} />委托企业 问询次数 TOP20</Space>} size="small" style={{ height: 380 }}>
+          <Card title={<Space><MessageOutlined style={{ color: '#722ed1' }} />问询TOP20</Space>} size="small" style={{ height: 390 }}>
             <Table dataSource={inquiryRank.slice(0, 20)} rowKey="name" size="small" pagination={{ pageSize: 10, size: 'small' }}
-              columns={[{ title: '#', width: 35, render: (_: any, __: any, i: number) => <Tag color={i < 3 ? 'purple' : 'default'}>{i + 1}</Tag> }, { title: '企业', dataIndex: 'name', ellipsis: true }, { title: '问询次数', dataIndex: 'count', width: 80, sorter: (a: any, b: any) => a.count - b.count, defaultSortOrder: 'descend', render: (v: number) => <Tag color="purple">{v} 次</Tag> }]} />
+              columns={[{ title: '#', width: 35, render: (_: any, __: any, i: number) => <Tag color={i < 3 ? 'purple' : 'default'}>{i + 1}</Tag> }, { title: '企业', dataIndex: 'name', ellipsis: true }, { title: '问询', dataIndex: 'count', width: 80, sorter: (a: any, b: any) => a.count - b.count, defaultSortOrder: 'descend', render: (v: number) => <Tag color="purple">{v} 次</Tag> }]} />
           </Card>
         </Col>
       </Row>
