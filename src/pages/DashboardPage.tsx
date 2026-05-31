@@ -70,18 +70,18 @@ export const DashboardPage: React.FC = () => {
   const [wm, setWm] = useState(5);
 
   const handleLoad = React.useCallback(async () => {
-    setLoading(true);
     try {
       const base = import.meta.env.BASE_URL;
       const availableFiles = ['数据2026-04.csv','数据2026-05.csv'];
       const year = '2026';
+      const pass = getPassphrase();
 
       // 并行加载+解密所有文件
       const results = await Promise.allSettled(availableFiles.map(async (fileName) => {
         const m = fileName.match(/(\d{2})\.csv$/)?.[1] || '';
         const resp = await fetch(base + fileName + ".enc");
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const buf = await resp.arrayBuffer(); const text = await decryptCSV(buf, getPassphrase());
+        const buf = await resp.arrayBuffer(); const text = await decryptCSV(buf, pass);
         const lines = text.split('\n').filter(l => l.trim());
         if (lines.length < 2) throw new Error('Empty');
         const headers = parseCSVLine(lines[0]);
