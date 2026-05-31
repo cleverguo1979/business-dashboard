@@ -9,7 +9,7 @@ import App from './App.tsx'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ConfigProvider locale={zhCN}>
-      <BrowserRouter>
+      <BrowserRouter basename="/business-dashboard">
         <App />
       </BrowserRouter>
     </ConfigProvider>
