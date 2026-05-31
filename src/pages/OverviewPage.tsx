@@ -90,7 +90,7 @@ export const OverviewPage: React.FC = () => {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 140, right: 50, top: 5, bottom: 20 },
     xAxis: { type: 'value', name: '委托量' },
-    yAxis: { type: 'category', data: entrustTop10.map(e => e[0]).reverse(), axisLabel: { fontSize: 10, width: 130, overflow: 'truncate' }, inverse: true },
+    yAxis: { type: 'category', data: entrustTop10.map(e => e[0]).reverse(), axisLabel: { fontSize: 10, width: 130, overflow: 'truncate' } },
     series: [{ type: 'bar', data: entrustTop10.map(e => e[1]).reverse(), itemStyle: { borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', fontSize: 11 } }],
   }), [entrustTop10]);
 
