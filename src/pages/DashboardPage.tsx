@@ -185,7 +185,14 @@ export const DashboardPage: React.FC = () => {
   const entrustUniqueRank = useMemo(() => pre?.entrustUniqueBizRank?.slice(0, 20) || [], [pre]);
 
   if (!currentDataSet) {
-    return <div style={{ textAlign: 'center', marginTop: 100 }}><Empty description="暂无数据" image={Empty.PRESENTED_IMAGE_SIMPLE} /><Spin spinning={loading}><Button type="primary" size="large" icon={<ReloadOutlined />} onClick={handleLoad} loading={loading}>一键加载报表</Button></Spin></div>;
+    if (loading) {
+      return <div style={{ textAlign: 'center', marginTop: 150 }}>
+        <Spin size="large" />
+        <p style={{ color: '#1677ff', marginTop: 20, fontSize: 15, fontWeight: 500 }}>正在下载并解密数据，请耐心等待...</p>
+        <p style={{ color: '#999', fontSize: 12 }}>加密数据 4月+5月约 21MB，从 GitHub 拉取需要 1-2 分钟</p>
+      </div>;
+    }
+    return <div style={{ textAlign: 'center', marginTop: 100 }}><Empty description="暂无数据" image={Empty.PRESENTED_IMAGE_SIMPLE} /><Button type="primary" size="large" icon={<ReloadOutlined />} onClick={handleLoad}>一键加载加密报表</Button></div>;
   }
   if (!pre || computing) return <div style={{ textAlign: 'center', marginTop: 150 }}><Spin size="large" /><p style={{ color: '#999', marginTop: 16 }}>分析 {allRecords.length} 条数据...</p></div>;
 
