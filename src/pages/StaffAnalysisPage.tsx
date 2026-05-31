@@ -241,32 +241,24 @@ export const StaffAnalysisPage: React.FC = () => {
                 const s=selectedProfile;
                 const avgFull=s.docPrepCount>0?fmtSec(s.docPrepSum/s.docPrepCount):'-';
                 const avgClean=s.docPrepCleanCount>0?fmtSec(s.docPrepCleanSum/s.docPrepCleanCount):'-';
-                const groupCards = [
+                const cards = [
                   {icon:<BarChartOutlined/>,label:'报关单量',value:s.total,unit:'单',color:C[0]},
                   {icon:<ExportOutlined/>,label:'出口',value:s.expTotal,unit:'单',color:C[0]},
                   {icon:<ImportOutlined/>,label:'进口',value:s.impTotal,unit:'单',color:C[1]},
-                ];
-                const restCards = [
                   {icon:<ClockCircleOutlined/>,label:'制单时效(全量)',value:avgFull,color:C[0]},
                   {icon:<ClockCircleOutlined/>,label:'制单时效(剔除)',value:avgClean,color:C[1]},
                   {icon:<AlertOutlined/>,label:'17点后',value:`${s.after17Total} 单`,sub:`${pct(s.after17Total,s.total)}%`,color:'#f5222d'},
                   {icon:<AlertOutlined/>,label:'跨日',value:`${s.crossTotal} 单`,sub:`${pct(s.crossTotal,s.total)}%`,color:'#fa8c16'},
                 ];
-                const miniCard = (c:any,i:number) => (
-                  <Col key={i} flex="1 1 120px">
-                    <Card size="small" style={{height:78}} bodyStyle={{padding:'8px 10px',textAlign:'center'}}>
-                      <div style={{fontSize:11,color:'#999',marginBottom:2}}><span style={{color:c.color,marginRight:4}}>{c.icon}</span>{c.label}</div>
-                      <div style={{fontSize:18,fontWeight:700,color:c.color}}>{c.value}{c.unit||''}</div>
+                return cards.map((c,i)=>(
+                  <Col key={i} xs={6} sm={3} style={{flex:'1 1 0'}}>
+                    <Card size="small" style={{height:78}} bodyStyle={{padding:'8px 6px',textAlign:'center'}}>
+                      <div style={{fontSize:11,color:'#999',marginBottom:2}}><span style={{color:c.color,marginRight:3}}>{c.icon}</span>{c.label}</div>
+                      <div style={{fontSize:17,fontWeight:700,color:c.color}}>{c.value}{c.unit||''}</div>
                       {c.sub && <div style={{fontSize:10,color:'#aaa',marginTop:1}}>{c.sub}</div>}
                     </Card>
                   </Col>
-                );
-                return <>
-                  <Col flex="none" style={{background:'#f0f5ff',borderRadius:8,padding:'4px 0',display:'flex',gap:4}}>
-                    {groupCards.map(miniCard)}
-                  </Col>
-                  {restCards.map(miniCard)}
-                </>;
+                ));
               })()}
             </Row>
             <Table dataSource={[...(selectedProfile.monthly.entries())].sort((a,b)=>a[0]-b[0]).map(([m,ms],i)=>({_key:i,month:ALL_MONTHS[m-1],...ms,avgFull:ms.docPrepCount>0?fmtSec(ms.docPrepSum/ms.docPrepCount):'-',avgClean:ms.docPrepCleanCount>0?fmtSec(ms.docPrepCleanSum/ms.docPrepCleanCount):'-'}))} rowKey="_key" size="small" pagination={false} style={{marginTop:8}}
