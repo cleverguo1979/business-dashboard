@@ -177,29 +177,43 @@ export const DashboardPage: React.FC = () => {
       </Card>
 
       <Row gutter={[8, 8]} style={{ marginBottom: 12 }}>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small"><Statistic title={<span><BarChartOutlined /> 报关单总数</span>} value={total} suffix="单" valueStyle={{ color: '#1677ff', fontWeight: 700, fontSize: 20 }} /></Card></Col>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small"><Statistic title="日期范围" value={`${pre.dateRange.start} ~ ${pre.dateRange.end}`} valueStyle={{ fontSize: 12 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: 96 }}><Statistic title={<span><BarChartOutlined /> 报关单总数</span>} value={total} suffix="单" valueStyle={{ color: '#1677ff', fontWeight: 700, fontSize: 20 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: 96 }}><Statistic title="日期范围" value={`${pre.dateRange.start} ~ ${pre.dateRange.end}`} valueStyle={{ fontSize: 12 }} /></Card></Col>
         <Col xs={12} sm={8} md={6} lg={3} xl={3}>
-          <Card size="small" style={{ paddingBottom: 4 }}>
-            <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}><ClockCircleOutlined /> 平均接单耗时</div>
-            <div style={{ lineHeight: 1.8 }}>
-              <div><span style={{ color: '#999', fontSize: 11 }}>全量　</span><b style={{ color: acceptAll < 120 ? '#52c41a' : '#fa8c16', fontSize: 20 }}>{fmtSec(acceptAll)}</b></div>
-              <div><span style={{ color: '#999', fontSize: 11 }}>剔除异常</span><b style={{ color: '#52c41a', fontSize: 15, marginLeft: 4 }}>{fmtSec(acceptClean)}</b></div>
+          <Card size="small" style={{ height: 96 }}>
+            <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}><ClockCircleOutlined /> 平均接单耗时</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <div style={{ fontSize: 10, color: '#999' }}>全量</div>
+                <div style={{ color: acceptAll < 120 ? '#52c41a' : '#fa8c16', fontWeight: 700, fontSize: 20 }}>{fmtSec(acceptAll)}</div>
+              </div>
+              <div style={{ color: '#52c41a', fontSize: 16, padding: '0 4px' }}>→</div>
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <div style={{ fontSize: 10, color: '#999' }}>剔除异常</div>
+                <div style={{ color: '#52c41a', fontWeight: 700, fontSize: 20 }}>{fmtSec(acceptClean)}</div>
+              </div>
             </div>
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6} lg={3} xl={3}>
-          <Card size="small" style={{ paddingBottom: 4 }}>
-            <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}><FileTextOutlined /> 平均制单时长</div>
-            <div style={{ lineHeight: 1.8 }}>
-              <div><span style={{ color: '#999', fontSize: 11 }}>全量　</span><b style={{ color: docAll < 600 ? '#52c41a' : '#fa8c16', fontSize: 20 }}>{fmtSec(docAll)}</b></div>
-              <div><span style={{ color: '#999', fontSize: 11 }}>剔除异常</span><b style={{ color: '#52c41a', fontSize: 15, marginLeft: 4 }}>{fmtSec(docClean)}</b></div>
+          <Card size="small" style={{ height: 96 }}>
+            <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}><FileTextOutlined /> 平均制单时长</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <div style={{ fontSize: 10, color: '#999' }}>全量</div>
+                <div style={{ color: docAll < 600 ? '#52c41a' : '#fa8c16', fontWeight: 700, fontSize: 20 }}>{fmtSec(docAll)}</div>
+              </div>
+              <div style={{ color: '#52c41a', fontSize: 16, padding: '0 4px' }}>→</div>
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <div style={{ fontSize: 10, color: '#999' }}>剔除异常</div>
+                <div style={{ color: '#52c41a', fontWeight: 700, fontSize: 20 }}>{fmtSec(docClean)}</div>
+              </div>
             </div>
           </Card>
         </Col>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small"><Statistic title={<span><ThunderboltOutlined /> 高峰 {peakInfo.hour}</span>} value={`${peakInfo.count} 单 (${pct(peakInfo.count, total)}%)`} valueStyle={{ color: '#f5222d', fontWeight: 700, fontSize: 18 }} /></Card></Col>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ background: '#fff7e6' }}><Statistic title={<span><AlertOutlined style={{ color: '#fa8c16' }} /> 跨日制单</span>} value={`${pre.crossDateCount} 单 (${pct(pre.crossDateCount, total)}%)`} valueStyle={{ color: '#fa8c16', fontWeight: 600, fontSize: 18 }} /></Card></Col>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ background: '#fff1f0' }}><Statistic title={<span><WarningOutlined style={{ color: '#f5222d' }} /> 17:00后下单</span>} value={`${pre.after17Count} 单 (${pct(pre.after17Count, total)}%)`} valueStyle={{ color: '#f5222d', fontWeight: 600, fontSize: 18 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: 96 }}><Statistic title={<span><ThunderboltOutlined /> 高峰 {peakInfo.hour}</span>} value={`${peakInfo.count} 单 (${pct(peakInfo.count, total)}%)`} valueStyle={{ color: '#f5222d', fontWeight: 700, fontSize: 18 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: 96, background: '#fff7e6' }}><Statistic title={<span><AlertOutlined style={{ color: '#fa8c16' }} /> 跨日制单</span>} value={`${pre.crossDateCount} 单 (${pct(pre.crossDateCount, total)}%)`} valueStyle={{ color: '#fa8c16', fontWeight: 600, fontSize: 18 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: 96, background: '#fff1f0' }}><Statistic title={<span><WarningOutlined style={{ color: '#f5222d' }} /> 17:00后下单</span>} value={`${pre.after17Count} 单 (${pct(pre.after17Count, total)}%)`} valueStyle={{ color: '#f5222d', fontWeight: 600, fontSize: 18 }} /></Card></Col>
       </Row>
 
       <Row gutter={[14, 14]} style={{ marginBottom: 12 }}>
