@@ -8,13 +8,15 @@ import {
   UploadOutlined,
   DatabaseOutlined,
   BarChartOutlined,
+  LineChartOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const { Sider, Content, Header } = Layout;
 
 const menuItems = [
-  { key: '/', icon: <DashboardOutlined />, label: '数据看板' },
+  { key: '/', icon: <DashboardOutlined />, label: '当月看板' },
+  { key: '/overview', icon: <LineChartOutlined />, label: '总分析' },
   { key: '/import', icon: <UploadOutlined />, label: '导入数据' },
   { key: '/data', icon: <DatabaseOutlined />, label: '数据管理' },
 ];
@@ -48,7 +50,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           cursor: 'pointer',
         }} onClick={() => navigate('/')}>
           <BarChartOutlined style={{ marginRight: collapsed ? 0 : 8 }} />
-          {!collapsed && '业务数据看板'}
+          {!collapsed && '报关业务分析'}
         </div>
         <Menu
           mode="inline"
