@@ -57,9 +57,15 @@ export const DashboardPage: React.FC = () => {
   const createDimensionsFromColumns = useDimensionStore(s => s.createDimensionsFromColumns);
   const currentDataSet = useMemo(() => dataSets.find(ds => ds.id === currentDataSetId), [dataSets, currentDataSetId]);
 const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
-  const ma = a.name.match(/(\d{4})[-/](\d{1,2})/); const mb = b.name.match(/(\d{4})[-/](\d{1,2})/);
-  if (!ma || !mb) return 0;
-  return (parseInt(ma[1])*100+parseInt(ma[2])) - (parseInt(mb[1])*100+parseInt(mb[2]));
+  // 从 name 或 fileName 中提取月份：2026-04、(4月)、04、4月 等
+  const getMonth = (ds: typeof dataSets[0]) => {
+    const str = (ds.name + ' ' + ds.fileName);
+    const m = str.match(/(\d{4})[-/](\d{1,2})/); if (m) return parseInt(m[1])*100 + parseInt(m[2]);
+    const m2 = str.match(/(\d{1,2})月/); if (m2) return parseInt(m2[1]);
+    const m3 = str.match(/[-/](\d{1,2})/); if (m3) return parseInt(m3[1]);
+    return 9999; // 无法识别的排最后
+  };
+  return getMonth(a) - getMonth(b);
 }), [dataSets]);
   const { pre, computing, compute } = usePreprocessStore();
   const allRecords = currentDataSet?.records || [];
