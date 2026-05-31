@@ -31,6 +31,7 @@ interface StaffProfile {
 export const StaffAnalysisPage: React.FC = () => {
   const dataSets = useDataStore(s => s.dataSets);
   const [selectedStaff, setSelectedStaff] = useState<string>('');
+  const [speedMode, setSpeedMode] = useState<'full'|'clean'>('full');
 
   const activeMonths = useMemo(() => {
     const set = new Set<number>();
@@ -139,12 +140,14 @@ export const StaffAnalysisPage: React.FC = () => {
   const speedDist = useMemo(()=>{
     const counts=new Array(speedBins.length).fill(0);
     for(const s of staffList){
-      if(s.docPrepCount===0) continue;
-      const avg = s.docPrepSum/s.docPrepCount;
+      const cnt = speedMode==='clean' ? s.docPrepCleanCount : s.docPrepCount;
+      const sum = speedMode==='clean' ? s.docPrepCleanSum : s.docPrepSum;
+      if(cnt===0) continue;
+      const avg = sum/cnt;
       for(let i=0;i<speedBins.length;i++){ if(avg<speedBins[i].max){ counts[i]++; break; } }
     }
     return {labels:speedBins.map(b=>b.label),counts};
-  },[staffList]);
+  },[staffList, speedMode]);
   const speedChart = useMemo(():EChartsOption=>({
     color:[C[1]], tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
     grid:{left:50,right:20,top:10,bottom:35},
@@ -171,14 +174,28 @@ export const StaffAnalysisPage: React.FC = () => {
   return (
     <div>
       <Card size="small" style={{marginBottom:12}}>
-        <Space><span style={{fontWeight:600,fontSize:15}}><TeamOutlined/> 制单员分析</span><Tag color="blue">{staffList.length} 人</Tag><Tag color="green">{monthCount} 个月数据</Tag></Space>
+        <Space><span style={{fontWeight:600,fontSize:15}}><TeamOutlined/> 制单员分析</span><Tag color="blue">{staffList.length} 人</Tag><Tag color="green">基于 {monthCount} 个月数据</Tag></Space>
       </Card>
 
       <Row gutter={[10,10]} style={{marginBottom:12}}>
         <Col xs={12} sm={3}><Card size="small"><Statistic title="制单员总数" value={staffList.length} suffix="人" prefix={<TeamOutlined/>} valueStyle={{color:C[0],fontWeight:700,fontSize:20}}/></Card></Col>
-        <Col xs={12} sm={3}><Card size="small"><Statistic title={`总单量(${monthCount}月)`} value={totalOrders} suffix="单" prefix={<BarChartOutlined/>} valueStyle={{color:C[0]}}/></Card></Col>
-        <Col xs={12} sm={3}><Card size="small"><Statistic title={`月人均单量(${monthCount}月)`} value={monthCount>0?Math.round(avgPerPerson/monthCount):0} suffix="单/月" prefix={<TrophyOutlined/>}/></Card></Col>
-        <Col xs={12} sm={3}><Card size="small"><Statistic title={`人均制单时效(${monthCount}月)`} value={allFullAvg} prefix={<ClockCircleOutlined/>} valueStyle={{color:'#1677ff',fontSize:18}}/><div style={{fontSize:10,color:'#999'}}>剔除异常：{allCleanAvg}</div></Card></Col>
+        <Col xs={12} sm={3}><Card size="small"><Statistic title="总单量" value={totalOrders} suffix="单" prefix={<BarChartOutlined/>} valueStyle={{color:C[0]}}/></Card></Col>
+        <Col xs={12} sm={3}><Card size="small"><Statistic title="月人均单量" value={monthCount>0?Math.round(avgPerPerson/monthCount):0} suffix={`单/月`} prefix={<TrophyOutlined/>}/></Card></Col>
+        <Col xs={12} sm={6}>
+          <Card size="small">
+            <div style={{fontSize:12,color:'#666',marginBottom:4}}>人均制单时效 <span style={{color:'#999',fontSize:10}}>（基于{monthCount}个月）</span></div>
+            <div style={{display:'flex',justifyContent:'space-around',alignItems:'baseline'}}>
+              <div style={{textAlign:'center'}}>
+                <div style={{fontSize:10,color:'#999'}}>全量统计</div>
+                <div style={{color:'#1677ff',fontWeight:700,fontSize:20}}>{allFullAvg}</div>
+              </div>
+              <div style={{textAlign:'center'}}>
+                <div style={{fontSize:10,color:'#999'}}>剔除异常后</div>
+                <div style={{color:'#52c41a',fontWeight:700,fontSize:20}}>{allCleanAvg}</div>
+              </div>
+            </div>
+          </Card>
+        </Col>
       </Row>
 
       <Row gutter={[14,14]} style={{marginBottom:12}}>
@@ -191,7 +208,12 @@ export const StaffAnalysisPage: React.FC = () => {
           <Card title={<Space><BarChartOutlined/>工作量负荷分布 <Tooltip title="每位制单员在全时间段内的总单量，按区间统计人数，反映团队整体负荷结构"><QuestionCircleOutlined style={{color:'#bbb',fontSize:12}}/></Tooltip></Space>} size="small" style={{marginBottom:12}}>
             <ReactECharts option={workloadChart} style={{height:160}}/>
           </Card>
-          <Card title={<Space><ClockCircleOutlined/>制单时效分布 <Tooltip title="每位制单员的平均制单时长(全量)，按区间统计人数，反映团队整体效率水平"><QuestionCircleOutlined style={{color:'#bbb',fontSize:12}}/></Tooltip></Space>} size="small">
+          <Card title={<Space><ClockCircleOutlined/>制单时效分布 <Tooltip title="按制单员平均制单时长区间统计人数。全量=所有数据，剔除=排除跨日制单异常"><QuestionCircleOutlined style={{color:'#bbb',fontSize:12}}/></Tooltip></Space>} size="small"
+            extra={
+              <Select size="small" style={{width:100}} value={speedMode} onChange={v=>setSpeedMode(v)} options={[
+                {label:'全量统计',value:'full'},{label:'剔除异常',value:'clean'}
+              ]}/>
+            }>
             <ReactECharts option={speedChart} style={{height:160}}/>
           </Card>
         </Col>
