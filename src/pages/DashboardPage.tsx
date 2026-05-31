@@ -58,7 +58,7 @@ export const DashboardPage: React.FC = () => {
   const { pre, computing, compute } = usePreprocessStore();
   const allRecords = currentDataSet?.records || [];
 
-  useEffect(() => { if (allRecords.length > 0 && !pre && !computing) compute(allRecords); }, [allRecords, pre, computing, compute]);
+  useEffect(() => { if (allRecords.length > 0) { usePreprocessStore.getState().reset(); compute(allRecords); } }, [allRecords]);
 
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'all' | 'daily'>('all');
