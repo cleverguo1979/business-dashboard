@@ -236,29 +236,31 @@ export const StaffAnalysisPage: React.FC = () => {
         {selectedProfile ? (
           <div>
             <ReactECharts option={selectedMonthlyChart} style={{height:280}}/>
-            <div style={{marginTop:12,display:'flex',flexWrap:'wrap',gap:8}}>
+            <Row gutter={[10,10]} style={{marginTop:12}}>
               {(()=>{
                 const s=selectedProfile;
                 const avgFull=s.docPrepCount>0?fmtSec(s.docPrepSum/s.docPrepCount):'-';
                 const avgClean=s.docPrepCleanCount>0?fmtSec(s.docPrepCleanSum/s.docPrepCleanCount):'-';
-                const items = [
-                  {icon:<BarChartOutlined/>,label:'报关单量',value:s.total+' 单',color:C[0]},
-                  {icon:<ExportOutlined/>,label:'出口',value:s.expTotal+' 单',color:C[0]},
-                  {icon:<ImportOutlined/>,label:'进口',value:s.impTotal+' 单',color:C[1]},
-                  {icon:<ClockCircleOutlined/>,label:'时效(全量)',value:avgFull,color:C[0]},
-                  {icon:<ClockCircleOutlined/>,label:'时效(剔除)',value:avgClean,color:C[1]},
-                  {icon:<AlertOutlined/>,label:'17点后',value:`${s.after17Total} 单 (${pct(s.after17Total,s.total)}%)`,color:'#f5222d'},
-                  {icon:<AlertOutlined/>,label:'跨日',value:`${s.crossTotal} 单 (${pct(s.crossTotal,s.total)}%)`,color:'#fa8c16'},
+                const cards = [
+                  {icon:<BarChartOutlined/>,label:'报关单量',value:s.total,unit:'单',color:C[0]},
+                  {icon:<ExportOutlined/>,label:'出口',value:s.expTotal,unit:'单',color:C[0]},
+                  {icon:<ImportOutlined/>,label:'进口',value:s.impTotal,unit:'单',color:C[1]},
+                  {icon:<ClockCircleOutlined/>,label:'制单时效(全量)',value:avgFull,color:C[0]},
+                  {icon:<ClockCircleOutlined/>,label:'制单时效(剔除)',value:avgClean,color:C[1]},
+                  {icon:<AlertOutlined/>,label:'17点后',value:`${s.after17Total} 单`,sub:`${pct(s.after17Total,s.total)}%`,color:'#f5222d'},
+                  {icon:<AlertOutlined/>,label:'跨日',value:`${s.crossTotal} 单`,sub:`${pct(s.crossTotal,s.total)}%`,color:'#fa8c16'},
                 ];
-                return items.map((it,i)=>(
-                  <div key={i} style={{display:'inline-flex',alignItems:'center',gap:6,background:'#fafafa',borderRadius:8,padding:'6px 14px',border:'1px solid #f0f0f0'}}>
-                    <span style={{color:it.color,fontSize:14}}>{it.icon}</span>
-                    <span style={{fontSize:11,color:'#999'}}>{it.label}</span>
-                    <b style={{fontSize:13,color:it.color}}>{it.value}</b>
-                  </div>
+                return cards.map((c,i)=>(
+                  <Col xs={6} sm={Math.floor(24/7)} key={i}>
+                    <Card size="small" bodyStyle={{padding:'10px 12px',textAlign:'center'}}>
+                      <div style={{fontSize:11,color:'#999',marginBottom:4}}><span style={{color:c.color,marginRight:4}}>{c.icon}</span>{c.label}</div>
+                      <div style={{fontSize:18,fontWeight:700,color:c.color}}>{c.value}{c.unit||''}</div>
+                      {c.sub && <div style={{fontSize:11,color:'#999',marginTop:2}}>{c.sub}</div>}
+                    </Card>
+                  </Col>
                 ));
               })()}
-            </div>
+            </Row>
             <Table dataSource={[...(selectedProfile.monthly.entries())].sort((a,b)=>a[0]-b[0]).map(([m,ms],i)=>({_key:i,month:ALL_MONTHS[m-1],...ms,avgFull:ms.docPrepCount>0?fmtSec(ms.docPrepSum/ms.docPrepCount):'-',avgClean:ms.docPrepCleanCount>0?fmtSec(ms.docPrepCleanSum/ms.docPrepCleanCount):'-'}))} rowKey="_key" size="small" pagination={false} style={{marginTop:8}}
               columns={[
                 {title:'月份',dataIndex:'month',width:55},
