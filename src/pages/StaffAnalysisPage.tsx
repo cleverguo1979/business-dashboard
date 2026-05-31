@@ -81,7 +81,7 @@ export const StaffAnalysisPage: React.FC = () => {
   const rankingCols = [
     { title: '#', width:35, render:(_:any,__:any,i:number)=><Tag color={i<3?'gold':'default'}>{i+1}</Tag> },
     { title: '姓名', dataIndex:'name', width:75 },
-    { title: '总单量', dataIndex:'total', width:65, sorter:(a:any,b:any)=>a.total-b.total, defaultSortOrder:'descend' as const, render:(v:number)=><b>{v}</b> },
+    { title: "标准化报关单量", dataIndex:'total', width:65, sorter:(a:any,b:any)=>a.total-b.total, defaultSortOrder:'descend' as const, render:(v:number)=><b>{v}</b> },
     { title: '出口', dataIndex:'expTotal', width:50 },
     { title: '进口', dataIndex:'impTotal', width:50 },
     { title: '制单时效(全量)', key:'avg', width:105, render:(_:any,r:StaffProfile)=>r.docPrepCount>0?<Tag color="blue">{fmtSec(r.docPrepSum/r.docPrepCount)}</Tag>:'-' },
@@ -178,8 +178,8 @@ export const StaffAnalysisPage: React.FC = () => {
       </Card>
 
       <Row gutter={[10,10]} style={{marginBottom:12}}>
-        <Col xs={12} sm={3}><Card size="small"><Statistic title="制单员总数" value={staffList.length} suffix="人" prefix={<TeamOutlined/>} valueStyle={{color:C[0],fontWeight:700,fontSize:20}}/></Card></Col>
-        <Col xs={12} sm={3}><Card size="small"><Statistic title="总单量" value={totalOrders} suffix="单" prefix={<BarChartOutlined/>} valueStyle={{color:C[0]}}/></Card></Col>
+        <Col xs={12} sm={3}><Card size="small"><Statistic title="涉及标准化业务的制单员总数" value={staffList.length} suffix="人" prefix={<TeamOutlined/>} valueStyle={{color:C[0],fontWeight:700,fontSize:20}}/></Card></Col>
+        <Col xs={12} sm={3}><Card size="small"><Statistic title="标准化报关单量" value={totalOrders} suffix="单" prefix={<BarChartOutlined/>} valueStyle={{color:C[0]}}/></Card></Col>
         <Col xs={12} sm={3}><Card size="small"><Statistic title="月人均单量" value={monthCount>0?Math.round(avgPerPerson/monthCount):0} suffix={`单/月`} prefix={<TrophyOutlined/>}/></Card></Col>
         <Col xs={12} sm={6}>
           <Card size="small">
@@ -234,7 +234,7 @@ export const StaffAnalysisPage: React.FC = () => {
                 const avgFull=s.docPrepCount>0?fmtSec(s.docPrepSum/s.docPrepCount):'-';
                 const avgClean=s.docPrepCleanCount>0?fmtSec(s.docPrepCleanSum/s.docPrepCleanCount):'-';
                 return <>
-                  <Col xs={12} sm={4}><Statistic title="总单量" value={s.total} suffix="单"/></Col>
+                  <Col xs={12} sm={4}><Statistic title="标准化报关单量" value={s.total} suffix="单"/></Col>
                   <Col xs={12} sm={4}><Statistic title="出口" value={s.expTotal} suffix="单"/></Col>
                   <Col xs={12} sm={4}><Statistic title="进口" value={s.impTotal} suffix="单"/></Col>
                   <Col xs={12} sm={4}><Statistic title="制单时效(全量)" value={avgFull}/></Col>
