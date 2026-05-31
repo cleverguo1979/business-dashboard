@@ -74,12 +74,13 @@ export const DashboardPage: React.FC = () => {
       // 列出 public 下所有 CSV 文件
       const base = import.meta.env.BASE_URL;
       // 从 index.html 中无法直接列出目录，改为加载已知月份
-      const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+      // 只加载存在的月份（手动维护列表，避免脏数据）
+      const availableFiles = ['数据2026-01.csv','数据2026-02.csv','数据2026-03.csv','数据2026-04.csv','数据2026-05.csv'];
       const year = '2026';
       let loadedCount = 0;
 
-      for (const m of months) {
-        const fileName = `数据${year}-${m}.csv`;
+      for (const fileName of availableFiles) {
+        const m = fileName.match(/(\d{2})\.csv$/)?.[1] || '';
         try {
           const resp = await fetch(base + fileName);
           if (!resp.ok) continue;

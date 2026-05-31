@@ -19,7 +19,7 @@ function fmtSec(s: number): string {
   return `${(s / 3600).toFixed(1)}时`;
 }
 
-const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const ALL_MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 const COLORS = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2'];
 
 function extractMonth(name: string): number | null {
@@ -93,42 +93,45 @@ export const OverviewPage: React.FC = () => {
     return slots;
   }, [dataSets]);
 
-  const hasData = monthSlots.some(s => s.hasData);
+  // 只显示有数据的月份
+  const activeSlots = useMemo(() => monthSlots.filter(s => s.hasData), [monthSlots]);
+  const activeMonths = useMemo(() => activeSlots.map(s => ALL_MONTHS[monthSlots.indexOf(s)]), [activeSlots, monthSlots]);
+  const hasData = activeSlots.length > 0;
 
   // 所有委托企业列表
   const allEntrusts = useMemo(() => {
     const set = new Set<string>();
     monthSlots.forEach(s => s.entrustCounts.forEach((_, k) => set.add(k)));
     return [...set].sort();
-  }, [monthSlots]);
+  }, [activeSlots]);
 
   // 选中企业的月度业务量
   const selectedEntrustData = useMemo(() => {
     if (!selectedEntrust) return [];
-    return monthSlots.map(s => s.hasData ? (s.entrustCounts.get(selectedEntrust) || 0) : null);
-  }, [monthSlots, selectedEntrust]);
+    return activeSlots.map(s => s.hasData ? (s.entrustCounts.get(selectedEntrust) || 0) : null);
+  }, [activeSlots, selectedEntrust]);
 
   // ===== 图1：业务总量 =====
   const volumeChart = useMemo((): EChartsOption => ({
     color: [COLORS[0]],
     tooltip: { trigger: 'axis' },
     grid: { left: 50, right: 20, top: 20, bottom: 40 },
-    xAxis: { type: 'category', data: MONTHS },
+    xAxis: { type: "category", data: activeMonths },
     yAxis: { type: 'value', name: '单量' },
     series: [{
       name: '业务总量', type: 'line',
-      data: monthSlots.map(s => s.hasData ? s.total : null),
+      data: activeSlots.map(s => s.total),
       smooth: true, symbol: 'circle', symbolSize: 8,
       label: { show: true, fontSize: 11 },
     }],
-  }), [monthSlots]);
+  }), [activeSlots]);
 
   // ===== 图2：选中委托企业业务量 =====
   const entrustChart = useMemo((): EChartsOption => ({
     color: [COLORS[1]],
     tooltip: { trigger: 'axis' },
     grid: { left: 50, right: 20, top: 20, bottom: 40 },
-    xAxis: { type: 'category', data: MONTHS },
+    xAxis: { type: "category", data: activeMonths },
     yAxis: { type: 'value', name: '单量' },
     series: [{
       name: selectedEntrust || '请选择企业', type: 'line',
@@ -147,13 +150,13 @@ export const OverviewPage: React.FC = () => {
     }},
     legend: { bottom: 0 },
     grid: { left: 50, right: 20, top: 20, bottom: 50 },
-    xAxis: { type: 'category', data: MONTHS },
+    xAxis: { type: "category", data: activeMonths },
     yAxis: { type: 'value', name: '耗时', axisLabel: { formatter: (v: number) => fmtSec(v) } },
     series: [
-      { name: '全量数据', type: 'line', data: monthSlots.map(s => s.hasData ? s.acceptAll : null), smooth: true, symbol: 'circle', symbolSize: 7, label: { show: true, formatter: (p: any) => fmtSec(p.value), fontSize: 10 } },
-      { name: '剔除异常', type: 'line', data: monthSlots.map(s => s.hasData ? s.acceptClean : null), smooth: true, symbol: 'diamond', symbolSize: 7, label: { show: true, formatter: (p: any) => fmtSec(p.value), fontSize: 10 } },
+      { name: '全量数据', type: 'line', data: activeSlots.map(s => s.acceptAll), smooth: true, symbol: 'circle', symbolSize: 7, label: { show: true, formatter: (p: any) => fmtSec(p.value), fontSize: 10 } },
+      { name: '剔除异常', type: 'line', data: activeSlots.map(s => s.acceptClean), smooth: true, symbol: 'diamond', symbolSize: 7, label: { show: true, formatter: (p: any) => fmtSec(p.value), fontSize: 10 } },
     ],
-  }), [monthSlots]);
+  }), [activeSlots]);
 
   // ===== 图4：平均制单时长（全量 + 剔除） =====
   const docChart = useMemo((): EChartsOption => ({
@@ -164,43 +167,43 @@ export const OverviewPage: React.FC = () => {
     }},
     legend: { bottom: 0 },
     grid: { left: 50, right: 20, top: 20, bottom: 50 },
-    xAxis: { type: 'category', data: MONTHS },
+    xAxis: { type: "category", data: activeMonths },
     yAxis: { type: 'value', name: '耗时', axisLabel: { formatter: (v: number) => fmtSec(v) } },
     series: [
-      { name: '全量数据', type: 'line', data: monthSlots.map(s => s.hasData ? s.docAll : null), smooth: true, symbol: 'circle', symbolSize: 7, label: { show: true, formatter: (p: any) => fmtSec(p.value), fontSize: 10 } },
-      { name: '剔除异常', type: 'line', data: monthSlots.map(s => s.hasData ? s.docClean : null), smooth: true, symbol: 'diamond', symbolSize: 7, label: { show: true, formatter: (p: any) => fmtSec(p.value), fontSize: 10 } },
+      { name: '全量数据', type: 'line', data: activeSlots.map(s => s.docAll), smooth: true, symbol: 'circle', symbolSize: 7, label: { show: true, formatter: (p: any) => fmtSec(p.value), fontSize: 10 } },
+      { name: '剔除异常', type: 'line', data: activeSlots.map(s => s.docClean), smooth: true, symbol: 'diamond', symbolSize: 7, label: { show: true, formatter: (p: any) => fmtSec(p.value), fontSize: 10 } },
     ],
-  }), [monthSlots]);
+  }), [activeSlots]);
 
   // ===== 图5：跨日制单 =====
   const crossChart = useMemo((): EChartsOption => ({
     color: [COLORS[3]],
     tooltip: { trigger: 'axis' },
     grid: { left: 50, right: 20, top: 20, bottom: 40 },
-    xAxis: { type: 'category', data: MONTHS },
+    xAxis: { type: "category", data: activeMonths },
     yAxis: { type: 'value', name: '单量' },
     series: [{
       name: '跨日制单', type: 'bar',
-      data: monthSlots.map(s => s.hasData ? s.crossDate : null),
+      data: activeSlots.map(s => s.crossDate),
       itemStyle: { borderRadius: [4, 4, 0, 0] },
       label: { show: true, position: 'top', fontSize: 11 },
     }],
-  }), [monthSlots]);
+  }), [activeSlots]);
 
   // ===== 图6：17:00后 =====
   const after17Chart = useMemo((): EChartsOption => ({
     color: [COLORS[4]],
     tooltip: { trigger: 'axis' },
     grid: { left: 50, right: 20, top: 20, bottom: 40 },
-    xAxis: { type: 'category', data: MONTHS },
+    xAxis: { type: "category", data: activeMonths },
     yAxis: { type: 'value', name: '单量' },
     series: [{
       name: '17:00后下单', type: 'bar',
-      data: monthSlots.map(s => s.hasData ? s.after17 : null),
+      data: activeSlots.map(s => s.after17),
       itemStyle: { borderRadius: [4, 4, 0, 0] },
       label: { show: true, position: 'top', fontSize: 11 },
     }],
-  }), [monthSlots]);
+  }), [activeSlots]);
 
   if (!hasData) {
     return <Empty style={{ marginTop: 100 }} description="请先导入数据（数据集名称需包含月份，如 2026-04 或 4月）" />;
