@@ -69,10 +69,12 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           borderBottom: `1px solid ${token.colorBorderSecondary}`,
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           fontSize: 16,
           fontWeight: 500,
         }}>
-          {menuItems.find(item => item.key === location.pathname)?.label || '标准化业务看板'}
+          <span>{menuItems.find(item => item.key === location.pathname)?.label || '标准化业务看板'}</span>
+          <img src={import.meta.env.BASE_URL + 'logo.png'} alt="远海通" style={{height:36,opacity:0.9}} />
         </Header>
         <Content style={{ margin: 16, overflow: 'auto' }}>
           {children}
