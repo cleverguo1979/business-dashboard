@@ -9,6 +9,7 @@ import {
   DatabaseOutlined,
   BarChartOutlined,
   LineChartOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -17,6 +18,7 @@ const { Sider, Content, Header } = Layout;
 const menuItems = [
   { key: '/', icon: <DashboardOutlined />, label: '当月看板' },
   { key: '/overview', icon: <LineChartOutlined />, label: '总分析' },
+  { key: '/staff', icon: <TeamOutlined />, label: '人员分析' },
   { key: '/import', icon: <UploadOutlined />, label: '导入数据' },
   { key: '/data', icon: <DatabaseOutlined />, label: '数据管理' },
 ];

@@ -1,0 +1,243 @@
+/**
+ * 制单员工作量及时效分析
+ */
+import React, { useMemo, useState } from 'react';
+import { Card, Row, Col, Select, Tag, Space, Empty, Table, Statistic } from 'antd';
+import { TeamOutlined, ClockCircleOutlined, BarChartOutlined, TrophyOutlined } from '@ant-design/icons';
+import ReactECharts from 'echarts-for-react';
+import type { EChartsOption } from 'echarts';
+import { useDataStore } from '../store/dataStore';
+
+const ALL_MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const C = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#faad14'];
+
+function parseTime(s: string): Date | null { if(!s)return null; const d=new Date(s.replace(' ','T')); return isNaN(d.getTime())?null:d; }
+function fmtSec(s: number): string { if(s<60)return `${Math.round(s)}秒`; if(s<3600)return `${(s/60).toFixed(1)}分`; return `${(s/3600).toFixed(1)}时`; }
+function pct(v: number, t: number): string { return t>0?(v/t*100).toFixed(1):'0'; }
+function extractMonth(name: string): number|null {
+  const m=name.match(/(\d{4})[-/](\d{1,2})/); if(m)return parseInt(m[2],10);
+  const m2=name.match(/(\d{1,2})月/); if(m2)return parseInt(m2[1],10);
+  return null;
+}
+
+interface StaffMonthStats {
+  total: number; exp: number; imp: number;
+  docPrepSum: number; docPrepCount: number;
+  after17: number; crossDate: number; inquirySum: number;
+}
+interface StaffProfile {
+  name: string;
+  monthly: Map<number, StaffMonthStats>; // month 1-12
+  total: number; expTotal: number; impTotal: number;
+  docPrepSum: number; docPrepCount: number;
+  after17Total: number; crossTotal: number; inquiryTotal: number;
+}
+
+export const StaffAnalysisPage: React.FC = () => {
+  const dataSets = useDataStore(s => s.dataSets);
+  const [selectedStaff, setSelectedStaff] = useState<string>('');
+
+  // 从所有数据集构建制单员画像
+  const staffProfiles = useMemo((): Map<string, StaffProfile> => {
+    const map = new Map<string, StaffProfile>();
+    for (const ds of dataSets) {
+      const month = extractMonth(ds.name);
+      if (month === null || month < 1 || month > 12) continue;
+      for (const r of ds.records) {
+        const name = r['报关员姓名'] || '(未知)';
+        if (!map.has(name)) {
+          map.set(name, {
+            name, monthly: new Map(),
+            total:0, expTotal:0, impTotal:0, docPrepSum:0, docPrepCount:0,
+            after17Total:0, crossTotal:0, inquiryTotal:0,
+          });
+        }
+        const p = map.get(name)!;
+        if (!p.monthly.has(month)) p.monthly.set(month, { total:0,exp:0,imp:0,docPrepSum:0,docPrepCount:0,after17:0,crossDate:0,inquirySum:0 });
+        const ms = p.monthly.get(month)!;
+
+        const ot = parseTime(r['业务下单时间']);
+        const rt = parseTime(r['首次提交复核时间']);
+        const rawType = (r['进/口类型']||'').toString().trim();
+        const isExp = rawType==='E'; const isImp = rawType==='I';
+        const inquiry = parseInt(r['问询次数'])||0;
+
+        p.total++; ms.total++;
+        if (isExp) { p.expTotal++; ms.exp++; }
+        if (isImp) { p.impTotal++; ms.imp++; }
+        if (ot && ot.getHours()>=17) { p.after17Total++; ms.after17++; }
+        if (ot && rt) {
+          const d = (rt.getTime()-ot.getTime())/1000;
+          if (d>=0) { p.docPrepSum+=d; p.docPrepCount++; ms.docPrepSum+=d; ms.docPrepCount++; }
+          if (ot.toDateString()!==rt.toDateString()) { p.crossTotal++; ms.crossDate++; }
+        }
+        p.inquiryTotal += inquiry; ms.inquirySum += inquiry;
+      }
+    }
+    return map;
+  }, [dataSets]);
+
+  const staffList = useMemo(() => [...staffProfiles.values()].sort((a,b)=>b.total-a.total), [staffProfiles]);
+
+  // 制单员排行表
+  const rankingCols = [
+    { title: '#', width:35, render:(_:any,__:any,i:number)=><Tag color={i<3?'gold':'default'}>{i+1}</Tag> },
+    { title: '姓名', dataIndex:'name', width:80 },
+    { title: '总单量', dataIndex:'total', width:70, sorter:(a:any,b:any)=>a.total-b.total, defaultSortOrder:'descend' as const, render:(v:number)=><b>{v}</b> },
+    { title: '出口', dataIndex:'expTotal', width:55 },
+    { title: '进口', dataIndex:'impTotal', width:55 },
+    { title: '制单时效', key:'avg', width:85, render:(_:any,r:StaffProfile)=>r.docPrepCount>0?<Tag color="blue">{fmtSec(r.docPrepSum/r.docPrepCount)}</Tag>:'-' },
+    { title: '问询', dataIndex:'inquiryTotal', width:55 },
+    { title: '17点后', key:'a17', width:65, render:(_:any,r:StaffProfile)=><span style={{fontSize:12}}>{r.after17Total}<span style={{color:'#f5222d'}}>({pct(r.after17Total,r.total)}%)</span></span> },
+    { title: '跨日', key:'cr', width:60, render:(_:any,r:StaffProfile)=><span style={{fontSize:12}}>{r.crossTotal}<span style={{color:'#fa8c16'}}>({pct(r.crossTotal,r.total)}%)</span></span> },
+  ];
+
+  // Top10 柱状图
+  const top10Chart = useMemo(():EChartsOption => ({
+    color: [C[0],C[1]],
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    legend:{bottom:0},
+    grid:{left:80,right:50,top:10,bottom:45},
+    xAxis:{type:'category',data:staffList.slice(0,10).map(s=>s.name).reverse(),axisLabel:{fontSize:10},inverse:true},
+    yAxis:{type:'value',name:'单量'},
+    series:[
+      {name:'出口',type:'bar',data:staffList.slice(0,10).map(s=>s.expTotal).reverse(),stack:'total',itemStyle:{borderRadius:[0,0,0,0]}},
+      {name:'进口',type:'bar',data:staffList.slice(0,10).map(s=>s.impTotal).reverse(),stack:'total',itemStyle:{borderRadius:[4,4,0,0]}},
+    ],
+  }),[staffList]);
+
+  // 选中制单员的月度趋势
+  const selectedProfile = useMemo(()=>selectedStaff?staffProfiles.get(selectedStaff):null,[staffProfiles,selectedStaff]);
+  const selectedMonthlyChart = useMemo(():EChartsOption => {
+    if(!selectedProfile) return {};
+    const months = [...selectedProfile.monthly.entries()].sort((a,b)=>a[0]-b[0]);
+    return {
+      color:[C[0],C[1],C[3]],
+      tooltip:{trigger:'axis'},
+      legend:{bottom:0},
+      grid:{left:50,right:20,top:10,bottom:45},
+      xAxis:{type:'category',data:months.map(([m])=>ALL_MONTHS[m-1]),axisLabel:{fontSize:10}},
+      yAxis:{type:'value',name:'单量'},
+      series:[
+        {name:'出口',type:'line',data:months.map(([,s])=>s.exp),smooth:true,symbol:'circle'},
+        {name:'进口',type:'line',data:months.map(([,s])=>s.imp),smooth:true,symbol:'diamond'},
+        {name:'总单量',type:'line',data:months.map(([,s])=>s.total),smooth:true,symbol:'triangle',lineStyle:{width:3}},
+      ],
+    };
+  },[selectedProfile]);
+
+  // 工作负荷分布（多少人做多少单）
+  const workloadDist = useMemo(()=>{
+    const bins=[0,100,200,500,1000,2000,3000,5000,Infinity];
+    const labels=['<100','100-200','200-500','500-1K','1K-2K','2K-3K','3K-5K','5K+'];
+    const counts=new Array(labels.length).fill(0);
+    for(const s of staffList){
+      for(let i=0;i<bins.length-1;i++){ if(s.total>=bins[i]&&s.total<bins[i+1]){ counts[i]++; break; } }
+    }
+    return {labels,counts};
+  },[staffList]);
+  const workloadChart = useMemo(():EChartsOption=>({
+    color:[C[2]],
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    grid:{left:50,right:20,top:10,bottom:35},
+    xAxis:{type:'category',data:workloadDist.labels},
+    yAxis:{type:'value',name:'人数'},
+    series:[{type:'bar',data:workloadDist.counts,itemStyle:{borderRadius:[4,4,0,0]},label:{show:true,position:'top'}}],
+  }),[workloadDist]);
+
+  // 时效分布
+  const speedBins = [{label:'<5分',max:300},{label:'5-15分',max:900},{label:'15-30分',max:1800},{label:'30分-1时',max:3600},{label:'1-2时',max:7200},{label:'2时+',max:Infinity}];
+  const speedDist = useMemo(()=>{
+    const counts= new Array(speedBins.length).fill(0);
+    for(const s of staffList){
+      if(s.docPrepCount===0) continue;
+      const avg = s.docPrepSum/s.docPrepCount;
+      for(let i=0;i<speedBins.length;i++){ if(avg<speedBins[i].max){ counts[i]++; break; } }
+    }
+    return {labels:speedBins.map(b=>b.label),counts};
+  },[staffList]);
+  const speedChart = useMemo(():EChartsOption=>({
+    color:[C[1]],
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    grid:{left:50,right:20,top:10,bottom:35},
+    xAxis:{type:'category',data:speedDist.labels},
+    yAxis:{type:'value',name:'人数'},
+    series:[{type:'bar',data:speedDist.counts,itemStyle:{borderRadius:[4,4,0,0]},label:{show:true,position:'top'}}],
+  }),[speedDist]);
+
+  if(dataSets.length===0) return <Empty style={{marginTop:100}} description="请先加载数据"/>;
+
+  return (
+    <div>
+      <Card size="small" style={{marginBottom:12}}>
+        <Space><span style={{fontWeight:600,fontSize:15}}><TeamOutlined/> 制单员分析</span><Tag color="blue">{staffList.length} 人</Tag></Space>
+      </Card>
+
+      {/* 总览卡片 */}
+      <Row gutter={[10,10]} style={{marginBottom:12}}>
+        <Col xs={12} sm={6}><Card size="small"><Statistic title="制单员总数" value={staffList.length} suffix="人" prefix={<TeamOutlined/>} valueStyle={{color:C[0],fontWeight:700,fontSize:20}}/></Card></Col>
+        <Col xs={12} sm={6}><Card size="small"><Statistic title="总单量" value={staffList.reduce((s,p)=>s+p.total,0)} suffix="单" prefix={<BarChartOutlined/>} valueStyle={{color:C[0]}}/></Card></Col>
+        <Col xs={12} sm={6}><Card size="small"><Statistic title="平均人均单量" value={staffList.length>0?Math.round(staffList.reduce((s,p)=>s+p.total,0)/staffList.length):0} suffix="单/人" prefix={<TrophyOutlined/>}/></Card></Col>
+        <Col xs={12} sm={6}><Card size="small"><Statistic title="人均制单时效" value={(()=>{const total=staffList.filter(s=>s.docPrepCount>0).reduce((s,p)=>s+p.docPrepSum/p.docPrepCount,0);const cnt=staffList.filter(s=>s.docPrepCount>0).length;return cnt>0?fmtSec(total/cnt):'-';})()} prefix={<ClockCircleOutlined/>}/></Card></Col>
+      </Row>
+
+      {/* TOP10 + 负荷 */}
+      <Row gutter={[14,14]} style={{marginBottom:12}}>
+        <Col xs={24} lg={14}>
+          <Card title={<Space><TrophyOutlined style={{color:C[3]}}/>制单员工作量 TOP10</Space>} size="small">
+            <ReactECharts option={top10Chart} style={{height:300}}/>
+          </Card>
+        </Col>
+        <Col xs={24} lg={10}>
+          <Card title={<Space><BarChartOutlined/>工作量负荷分布</Space>} size="small" style={{marginBottom:12}}>
+            <ReactECharts option={workloadChart} style={{height:160}}/>
+          </Card>
+          <Card title={<Space><ClockCircleOutlined/>制单时效分布</Space>} size="small">
+            <ReactECharts option={speedChart} style={{height:160}}/>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 完整排行表 */}
+      <Card title="制单员总览排行" size="small" style={{marginBottom:12}}>
+        <Table dataSource={staffList.map((s,i)=>({...s,key:i}))} rowKey="key" size="small" pagination={{pageSize:20,size:'small'}} columns={rankingCols as any}/>
+      </Card>
+
+      {/* 选中制单员月度详情 */}
+      <Card title={<Space>制单员月度明细{selectedStaff && <Tag color="blue">{selectedStaff}</Tag>}</Space>} size="small"
+        extra={<Select size="small" style={{width:160}} value={selectedStaff||undefined} placeholder="选择制单员" showSearch optionFilterProp="label" onChange={v=>setSelectedStaff(v)} options={staffList.map(s=>({label:s.name,value:s.name}))}/>}>
+        {selectedProfile ? (
+          <div>
+            <ReactECharts option={selectedMonthlyChart} style={{height:280}}/>
+            <Row gutter={[10,10]} style={{marginTop:12}}>
+              {(()=>{
+                const s=selectedProfile;
+                const avg=s.docPrepCount>0?fmtSec(s.docPrepSum/s.docPrepCount):'-';
+                return <>
+                  <Col xs={12} sm={4}><Statistic title="总单量" value={s.total} suffix="单"/></Col>
+                  <Col xs={12} sm={4}><Statistic title="出口" value={s.expTotal} suffix="单"/></Col>
+                  <Col xs={12} sm={4}><Statistic title="进口" value={s.impTotal} suffix="单"/></Col>
+                  <Col xs={12} sm={4}><Statistic title="制单时效" value={avg}/></Col>
+                  <Col xs={12} sm={4}><Statistic title="17点后" value={`${s.after17Total} (${pct(s.after17Total,s.total)}%)`}/></Col>
+                  <Col xs={12} sm={4}><Statistic title="跨日" value={`${s.crossTotal} (${pct(s.crossTotal,s.total)}%)`}/></Col>
+                </>;
+              })()}
+            </Row>
+            <Table dataSource={[...(selectedProfile.monthly.entries())].sort((a,b)=>a[0]-b[0]).map(([m,ms])=>({month:ALL_MONTHS[m-1],...ms,avg:ms.docPrepCount>0?fmtSec(ms.docPrepSum/ms.docPrepCount):'-'}))} rowKey="month" size="small" pagination={false} style={{marginTop:8}}
+              columns={[
+                {title:'月份',dataIndex:'month',width:60},
+                {title:'总单量',dataIndex:'total',width:70,render:(v:number)=><b>{v}</b>},
+                {title:'出口',dataIndex:'exp',width:55},
+                {title:'进口',dataIndex:'imp',width:55},
+                {title:'制单时效',dataIndex:'avg',width:90,render:(v:string)=><Tag color="blue">{v}</Tag>},
+                {title:'17点后',dataIndex:'after17',width:65},
+                {title:'跨日',dataIndex:'crossDate',width:55},
+                {title:'问询',dataIndex:'inquirySum',width:55},
+              ]}
+            />
+          </div>
+        ) : <Empty description="请选择一位制单员查看月度明细"/>}
+      </Card>
+    </div>
+  );
+};

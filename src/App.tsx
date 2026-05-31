@@ -5,6 +5,7 @@ import { LoginPage } from './components/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { OverviewPage } from './pages/OverviewPage'
 import { ImportPage } from './pages/ImportPage'
+import { StaffAnalysisPage } from './pages/StaffAnalysisPage'
 import { DataManagementPage } from './pages/DataManagementPage'
 import './App.css'
 
@@ -27,6 +28,7 @@ function App() {
       <Routes>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/overview" element={<OverviewPage />} />
+        <Route path="/staff" element={<StaffAnalysisPage />} />
         <Route path="/import" element={<ImportPage />} />
         <Route path="/data" element={<DataManagementPage />} />
       </Routes>
