@@ -50,7 +50,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           cursor: 'pointer',
         }} onClick={() => navigate('/')}>
           <BarChartOutlined style={{ marginRight: collapsed ? 0 : 8 }} />
-          {!collapsed && '报关业务分析'}
+          {!collapsed && '标准化业务看板'}
         </div>
         <Menu
           mode="inline"
@@ -70,7 +70,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           fontSize: 16,
           fontWeight: 500,
         }}>
-          {menuItems.find(item => item.key === location.pathname)?.label || '业务数据看板'}
+          {menuItems.find(item => item.key === location.pathname)?.label || '标准化业务看板'}
         </Header>
         <Content style={{ margin: 16, overflow: 'auto' }}>
           {children}

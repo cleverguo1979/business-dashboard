@@ -1,5 +1,5 @@
 /**
- * 总分析看板 - 跨月度横向对比，X轴固定1-12月
+ * 标准化业务报关单 - 跨月度横向对比，X轴固定1-12月
  */
 import React, { useMemo, useState } from 'react';
 import { Card, Row, Col, Tag, Space, Empty, Select } from 'antd';
@@ -81,11 +81,11 @@ export const OverviewPage: React.FC = () => {
 
   const nullIf = (has:boolean, v:number)=>has?v:null;
 
-  // 图1：业务总量
+  // 图1：标准化业务报关单月度总量
   const volChart = useMemo(():EChartsOption=>({
     color:[C[0]], tooltip:{trigger:'axis'}, grid:{left:45,right:15,top:15,bottom:35},
     xAxis:{type:'category',data:ALL_MONTHS,axisLabel:{fontSize:10}}, yAxis:{type:'value',name:'单量'},
-    series:[{name:'业务总量',type:'line',data:monthSlots.map(s=>nullIf(s.hasData,s.total)),smooth:true,symbol:'circle',symbolSize:6,label:{show:true,fontSize:10}}],
+    series:[{name:'标准化报关单量',type:'line',data:monthSlots.map(s=>nullIf(s.hasData,s.total)),smooth:true,symbol:'circle',symbolSize:6,label:{show:true,fontSize:10}}],
   }),[monthSlots]);
 
   // 图2：委托企业
@@ -130,14 +130,14 @@ export const OverviewPage: React.FC = () => {
   return (
     <div>
       <Card size="small" style={{marginBottom:12}}>
-        <Space><span style={{fontWeight:600,fontSize:15}}>总分析 - 1~12月横向对比</span><Tag color="blue">{dataSets.length} 个月份</Tag></Space>
+        <Space><span style={{fontWeight:600,fontSize:15}}>标准化业务报关单 月度横向对比</span><Tag color="blue">{dataSets.length} 个月份</Tag></Space>
       </Card>
 
-      <Card title={<Space><BarChartOutlined/>月度业务总量</Space>} size="small" style={{marginBottom:10}}>
+      <Card title={<Space><BarChartOutlined/>标准化业务月度总量</Space>} size="small" style={{marginBottom:10}}>
         <ReactECharts option={volChart} style={{height:250}}/>
       </Card>
 
-      <Card title={<Space><BarChartOutlined/>委托企业月度业务量</Space>} size="small" style={{marginBottom:10}}
+      <Card title={<Space><BarChartOutlined/>委托企业月度委托量</Space>} size="small" style={{marginBottom:10}}
         extra={<Select size="small" style={{width:240}} value={selectedEntrust||undefined} placeholder="选择委托企业" showSearch optionFilterProp="label" onChange={v=>setSelectedEntrust(v)} options={allEntrusts.map(e=>({label:e,value:e}))}/>}>
         {selectedEntrust ? <ReactECharts option={entChart} style={{height:250}}/> : <Empty description="请选择一家委托企业" style={{padding:30}}/>}
       </Card>

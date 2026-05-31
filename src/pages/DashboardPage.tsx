@@ -1,5 +1,5 @@
 /**
- * 业务数据看板
+ * 标准化业务数据看板
  */
 import React, { useMemo, useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Table, Select, Tag, Space, Empty, Button, Spin, Radio, Tooltip } from 'antd';
@@ -192,13 +192,13 @@ export const DashboardPage: React.FC = () => {
     <div>
       <Card size="small" style={{ marginBottom: 12 }}>
         <Row justify="space-between" align="middle">
-          <Col><Space><span style={{ fontWeight: 600, fontSize: 15 }}>业务数据看板</span><Select size="small" style={{ width: 260 }} value={currentDataSetId} onChange={v => setCurrentDataSet(v)} options={dataSets.map(ds => ({ label: `${ds.name} (${ds.records.length}条)`, value: ds.id }))} /></Space></Col>
+          <Col><Space><span style={{ fontWeight: 600, fontSize: 15 }}>标准化业务数据看板</span><Select size="small" style={{ width: 260 }} value={currentDataSetId} onChange={v => setCurrentDataSet(v)} options={dataSets.map(ds => ({ label: `${ds.name} (${ds.records.length}条)`, value: ds.id }))} /></Space></Col>
           <Col><span style={{ fontSize: 13, color: '#666' }}>{pre.dateRange.start} ~ {pre.dateRange.end}</span></Col>
         </Row>
       </Card>
 
       <Row gutter={[8, 8]} style={{ marginBottom: 12 }}>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: CARD_H }}><Statistic title={<span><BarChartOutlined /> 报关单总数</span>} value={total} suffix="单" valueStyle={{ color: '#1677ff', fontWeight: 700, fontSize: 20 }} /></Card></Col>
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: CARD_H }}><Statistic title={<span><BarChartOutlined /> 标准化业务报关单总数</span>} value={total} suffix="单" valueStyle={{ color: '#1677ff', fontWeight: 700, fontSize: 20 }} /></Card></Col>
         <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: CARD_H }}><Statistic title="日期范围" value={`${pre.dateRange.start} ~ ${pre.dateRange.end}`} valueStyle={{ fontSize: 12 }} /></Card></Col>
         <Col xs={12} sm={8} md={6} lg={3} xl={3}>
           <Card size="small" style={{ height: CARD_H }}>
@@ -244,7 +244,7 @@ export const DashboardPage: React.FC = () => {
       {/* 饼图 + 委托企业去重排行 + 问询 */}
       <Row gutter={[14, 14]} style={{ marginBottom: 12 }}>
         <Col xs={24} lg={8}>
-          <Card title="报关单进出口分布" size="small" style={{ height: 380 }}>
+          <Card title="标准化业务报关单 进出口分布" size="small" style={{ height: 380 }}>
             <ReactECharts option={pieOption} style={{ height: 340 }} />
           </Card>
         </Col>
@@ -287,7 +287,7 @@ export const DashboardPage: React.FC = () => {
       </Row>
 
       {/* 维度一 */}
-      <Card title={<Space>业务下单时间分布<Tag color="blue">{activeHourly.reduce((s, d) => s + d.count, 0)} 单</Tag></Space>}
+      <Card title={<Space>标准化业务下单时间分布<Tag color="blue">{activeHourly.reduce((s, d) => s + d.count, 0)} 单</Tag></Space>}
         extra={<Space><Radio.Group value={viewMode} onChange={e => setViewMode(e.target.value)} optionType="button" buttonStyle="solid" size="small"><Radio.Button value="all">全部</Radio.Button><Radio.Button value="daily">按日</Radio.Button></Radio.Group>{viewMode === 'daily' && <Select size="small" style={{ width: 130 }} value={selectedDate} onChange={setSelectedDate} options={pre.availableDates.map(d => ({ label: d, value: d }))} />}</Space>}
         style={{ marginBottom: 12 }}>
         <ReactECharts option={hourlyChart} style={{ height: 260 }} />
