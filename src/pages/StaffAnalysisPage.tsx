@@ -252,7 +252,7 @@ export const StaffAnalysisPage: React.FC = () => {
                 ];
                 return cards.map((c,i)=>(
                   <Col xs={6} sm={3} flex="1 0 140px" key={i}>
-                    <Card size="small" bodyStyle={{padding:'10px 12px',textAlign:'center'}}>
+                    <Card size="small" style={{height:78}} bodyStyle={{padding:'8px 10px',textAlign:'center'}}>
                       <div style={{fontSize:11,color:'#999',marginBottom:4}}><span style={{color:c.color,marginRight:4}}>{c.icon}</span>{c.label}</div>
                       <div style={{fontSize:18,fontWeight:700,color:c.color}}>{c.value}{c.unit||''}</div>
                       {c.sub && <div style={{fontSize:11,color:'#999',marginTop:2}}>{c.sub}</div>}
