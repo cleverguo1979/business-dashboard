@@ -120,9 +120,9 @@ export const StaffAnalysisPage: React.FC = () => {
       xAxis:{type:'category',data:months.map(([m])=>ALL_MONTHS[m-1]),axisLabel:{fontSize:10}},
       yAxis:{type:'value',name:'单量'},
       series:[
-        {name:'出口',type:'line',data:months.map(([,s])=>s.exp),smooth:true,symbol:'circle'},
-        {name:'进口',type:'line',data:months.map(([,s])=>s.imp),smooth:true,symbol:'diamond'},
-        {name:'报关单量',type:'line',data:months.map(([,s])=>s.total),smooth:true,symbol:'triangle',lineStyle:{width:3}},
+        {name:'出口',type:'line',data:months.map(([,s])=>s.exp),smooth:true,symbol:'circle',label:{show:true,fontSize:10},markLine:{silent:true,symbol:'none',data:[{type:'average',name:'均值',label:{formatter:'均值:{c}',fontSize:10}}],lineStyle:{color:C[0],type:'dashed'}}},
+        {name:'进口',type:'line',data:months.map(([,s])=>s.imp),smooth:true,symbol:'diamond',label:{show:true,fontSize:10},markLine:{silent:true,symbol:'none',data:[{type:'average',name:'均值',label:{formatter:'均值:{c}',fontSize:10}}],lineStyle:{color:C[1],type:'dashed'}}},
+        {name:'报关单量',type:'line',data:months.map(([,s])=>s.total),smooth:true,symbol:'triangle',label:{show:true,fontSize:10,fontWeight:'bold'},lineStyle:{width:3}},
       ],
     };
   },[selectedProfile]);
@@ -208,8 +208,8 @@ export const StaffAnalysisPage: React.FC = () => {
 
       <Row gutter={[14,14]} style={{marginBottom:12}}>
         <Col xs={24} lg={14}>
-          <Card title={<Space><TrophyOutlined style={{color:C[3]}}/>制单员工作量 TOP10</Space>} size="small">
-            <ReactECharts option={top10Chart} style={{height:300}}/>
+          <Card title={<span style={{fontSize:13}}><TrophyOutlined style={{color:C[3],marginRight:4}}/>制单员工作量 TOP10 <span style={{fontWeight:400,color:'#999',fontSize:11}}>（基于{monthCount}个月）</span></span>} size="small" style={{height:388}}>
+            <ReactECharts option={top10Chart} style={{height:340}}/>
           </Card>
         </Col>
         <Col xs={24} lg={10}>
