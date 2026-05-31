@@ -180,25 +180,21 @@ export const DashboardPage: React.FC = () => {
         <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small"><Statistic title={<span><BarChartOutlined /> 报关单总数</span>} value={total} suffix="单" valueStyle={{ color: '#1677ff', fontWeight: 700, fontSize: 20 }} /></Card></Col>
         <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small"><Statistic title="日期范围" value={`${pre.dateRange.start} ~ ${pre.dateRange.end}`} valueStyle={{ fontSize: 12 }} /></Card></Col>
         <Col xs={12} sm={8} md={6} lg={3} xl={3}>
-          <Card size="small">
-            <Statistic title={<span><ClockCircleOutlined /> 平均接单耗时</span>} valueRender={() => (
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ color: acceptAll < 120 ? '#52c41a' : '#fa8c16', fontWeight: 700, fontSize: 20 }}>{fmtSec(acceptAll)}</span>
-                <span style={{ fontSize: 12, color: '#999' }}>| 剔除</span>
-                <span style={{ color: '#52c41a', fontWeight: 600, fontSize: 16 }}>{fmtSec(acceptClean)}</span>
-              </div>
-            )} />
+          <Card size="small" style={{ paddingBottom: 4 }}>
+            <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}><ClockCircleOutlined /> 平均接单耗时</div>
+            <div style={{ lineHeight: 1.8 }}>
+              <div><span style={{ color: '#999', fontSize: 11 }}>全量　</span><b style={{ color: acceptAll < 120 ? '#52c41a' : '#fa8c16', fontSize: 20 }}>{fmtSec(acceptAll)}</b></div>
+              <div><span style={{ color: '#999', fontSize: 11 }}>剔除异常</span><b style={{ color: '#52c41a', fontSize: 15, marginLeft: 4 }}>{fmtSec(acceptClean)}</b></div>
+            </div>
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6} lg={3} xl={3}>
-          <Card size="small">
-            <Statistic title={<span><FileTextOutlined /> 平均制单时长</span>} valueRender={() => (
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ color: docAll < 600 ? '#52c41a' : '#fa8c16', fontWeight: 700, fontSize: 20 }}>{fmtSec(docAll)}</span>
-                <span style={{ fontSize: 12, color: '#999' }}>| 剔除</span>
-                <span style={{ color: '#52c41a', fontWeight: 600, fontSize: 16 }}>{fmtSec(docClean)}</span>
-              </div>
-            )} />
+          <Card size="small" style={{ paddingBottom: 4 }}>
+            <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}><FileTextOutlined /> 平均制单时长</div>
+            <div style={{ lineHeight: 1.8 }}>
+              <div><span style={{ color: '#999', fontSize: 11 }}>全量　</span><b style={{ color: docAll < 600 ? '#52c41a' : '#fa8c16', fontSize: 20 }}>{fmtSec(docAll)}</b></div>
+              <div><span style={{ color: '#999', fontSize: 11 }}>剔除异常</span><b style={{ color: '#52c41a', fontSize: 15, marginLeft: 4 }}>{fmtSec(docClean)}</b></div>
+            </div>
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small"><Statistic title={<span><ThunderboltOutlined /> 高峰 {peakInfo.hour}</span>} value={`${peakInfo.count} 单 (${pct(peakInfo.count, total)}%)`} valueStyle={{ color: '#f5222d', fontWeight: 700, fontSize: 18 }} /></Card></Col>
