@@ -32,6 +32,7 @@ export const StaffAnalysisPage: React.FC = () => {
   const dataSets = useDataStore(s => s.dataSets);
   const [selectedStaff, setSelectedStaff] = useState<string>('');
   const [speedMode, setSpeedMode] = useState<'full'|'clean'>('full');
+  const [rankingPageSize, setRankingPageSize] = useState(20);
 
   const activeMonths = useMemo(() => {
     const set = new Set<number>();
@@ -77,6 +78,13 @@ export const StaffAnalysisPage: React.FC = () => {
   }, [dataSets]);
 
   const staffList = useMemo(() => [...staffProfiles.values()].sort((a,b)=>b.total-a.total), [staffProfiles]);
+  const rankingData = useMemo(() => staffList.map((s,i) => ({...s, _rk: i})), [staffList]);
+
+  // 被排除在时效分布外的制单员数量
+  const speedExcluded = useMemo(() => staffList.filter(s => {
+    const cnt = speedMode==='clean' ? s.docPrepCleanCount : s.docPrepCount;
+    return cnt === 0;
+  }).length, [staffList, speedMode]);
 
   const rankingCols = [
     { title: '#', width:35, render:(_:any,__:any,i:number)=><Tag color={i<3?'gold':'default'}>{i+1}</Tag> },
@@ -214,13 +222,14 @@ export const StaffAnalysisPage: React.FC = () => {
                 {label:'全量统计',value:'full'},{label:'剔除异常',value:'clean'}
               ]}/>
             }>
-            <ReactECharts option={speedChart} style={{height:160}}/>
+            <ReactECharts option={speedChart} style={{height:140}}/>
+            {speedExcluded > 0 && <div style={{fontSize:10,color:'#999',textAlign:'center',marginTop:-8}}>注：{speedExcluded} 人无{speedMode==='clean'?'剔除异常后':''}制单数据，未纳入统计</div>}
           </Card>
         </Col>
       </Row>
 
       <Card title="制单员总览排行" size="small" style={{marginBottom:12}}>
-        <Table dataSource={staffList.map((s,i)=>({...s,_key:i}))} rowKey="_key" size="small" pagination={{pageSize:20,showSizeChanger:true,pageSizeOptions:['10','20','50','100'],showTotal:(t:number)=>`共 ${t} 人`}} columns={rankingCols as any}/>
+        <Table dataSource={rankingData} rowKey="_rk" size="small" pagination={{pageSize:rankingPageSize,showSizeChanger:true,pageSizeOptions:['10','20','50','100'],showTotal:(t:number)=>`共 ${t} 人`,onChange:(_page:number,pageSize:number)=>{setRankingPageSize(pageSize);}}} columns={rankingCols as any}/>
       </Card>
 
       <Card title={<Space>制单员月度明细{selectedStaff && <Tag color="blue">{selectedStaff}</Tag>}</Space>} size="small"
