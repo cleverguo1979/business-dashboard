@@ -70,6 +70,7 @@ export const DashboardPage: React.FC = () => {
   const [wm, setWm] = useState(5);
 
   const handleLoad = React.useCallback(async () => {
+    setLoading(true);
     try {
       const base = import.meta.env.BASE_URL;
       const availableFiles = ['数据2026-04.csv','数据2026-05.csv'];
