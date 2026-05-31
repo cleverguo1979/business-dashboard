@@ -208,7 +208,7 @@ export const StaffAnalysisPage: React.FC = () => {
 
       <Row gutter={[14,14]} style={{marginBottom:12}}>
         <Col xs={24} lg={14}>
-          <Card title={<span style={{fontSize:13}}><TrophyOutlined style={{color:C[3],marginRight:4}}/>制单员工作量 TOP10 <span style={{fontWeight:400,color:'#999',fontSize:11}}>（基于{monthCount}个月）</span></span>} size="small" style={{height:"100%"}}>
+          <Card title={<span style={{fontSize:13}}><TrophyOutlined style={{color:C[3],marginRight:4}}/>制单员工作量 TOP10 <span style={{fontWeight:400,color:'#999',fontSize:11}}>（基于{monthCount}个月）</span></span>} size="small" style={{height:440}}>
             <ReactECharts option={top10Chart} style={{height:330}}/>
           </Card>
         </Col>
