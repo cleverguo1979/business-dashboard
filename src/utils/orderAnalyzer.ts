@@ -56,7 +56,7 @@ export interface AnomalyFlags {
 /**
  * 解析时间字符串为 Date
  */
-function parseTime(timeStr: string): Date | null {
+export function parseTime(timeStr: string): Date | null {
   if (!timeStr) return null;
   try {
     const d = new Date(timeStr.replace(' ', 'T'));

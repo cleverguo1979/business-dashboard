@@ -56,6 +56,9 @@ export interface Dimension {
 
 // ========== 图表配置 ==========
 
+/** 时间维度 */
+export type TimeDimension = 'monthly' | 'yearly';
+
 /** 图表类型 */
 export type ChartType = 'bar' | 'line' | 'pie' | 'scatter' | 'area' | 'radar' | 'table';
 

@@ -1,7 +1,7 @@
 /**
  * 制单员工作量及时效分析
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, Row, Col, Select, Tag, Space, Empty, Table, Statistic, Tooltip } from 'antd';
 import { TeamOutlined, ClockCircleOutlined, BarChartOutlined, TrophyOutlined, QuestionCircleOutlined, ExportOutlined, ImportOutlined, AlertOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
@@ -44,17 +44,39 @@ export const StaffAnalysisPage: React.FC = () => {
   const [selectedStaff, setSelectedStaff] = useState<string>('');
   const [speedMode, setSpeedMode] = useState<'full'|'clean'>('clean');
   const [rankingPageSize, setRankingPageSize] = useState(20);
+  const [selectedYear, setSelectedYear] = useState<string>('');
+
+  const availableYears = useMemo(() => {
+    const years = new Set<string>();
+    for (const ds of dataSets) {
+      const y = (ds.name || '').substring(0, 4);
+      if (/^\d{4}$/.test(y)) years.add(y);
+    }
+    return [...years].sort();
+  }, [dataSets]);
+
+  useEffect(() => {
+    if (availableYears.length > 0 && !selectedYear) {
+      setSelectedYear(availableYears[availableYears.length - 1]);
+    }
+  }, [availableYears, selectedYear]);
+
+  // 按年份筛选数据集
+  const filteredDataSets = useMemo(() =>
+    selectedYear ? dataSets.filter(ds => (ds.name || '').startsWith(selectedYear)) : dataSets,
+    [dataSets, selectedYear]
+  );
 
   const activeMonths = useMemo(() => {
     const set = new Set<number>();
-    for (const ds of dataSets) { const m = extractMonth(ds.name); if (m) set.add(m); }
+    for (const ds of filteredDataSets) { const m = extractMonth(ds.name); if (m) set.add(m); }
     return [...set].sort((a,b)=>a-b);
-  }, [dataSets]);
+  }, [filteredDataSets]);
   const monthCount = activeMonths.length;
 
   const staffProfiles = useMemo((): Map<string, StaffProfile> => {
     const map = new Map<string, StaffProfile>();
-    for (const ds of dataSets) {
+    for (const ds of filteredDataSets) {
       const month = extractMonth(ds.name); if (month===null||month<1||month>12) continue;
       for (const r of ds.records) {
         const name = r['报关员姓名'] || '(未知)';
@@ -86,7 +108,7 @@ export const StaffAnalysisPage: React.FC = () => {
       }
     }
     return map;
-  }, [dataSets]);
+  }, [filteredDataSets]);
 
   const staffList = useMemo(() => [...staffProfiles.values()].sort((a,b)=>b.total-a.total), [staffProfiles]);
   const rankingData = useMemo(() => staffList.map((s,i) => ({...s, _rk: i})), [staffList]);
@@ -175,7 +197,7 @@ export const StaffAnalysisPage: React.FC = () => {
     series:[{type:'bar',data:speedDist.counts,itemStyle:{borderRadius:[4,4,0,0]},label:{show:true,position:'top'}}],
   }),[speedDist]);
 
-  if (dataSets.length===0) return <Empty style={{marginTop:100}} description="请先加载数据"/>;
+  if (filteredDataSets.length===0) return <Empty style={{marginTop:100}} description="请先加载数据"/>;
 
   const totalOrders = staffList.reduce((s,p)=>s+p.total,0);
   const avgPerPerson = staffList.length>0 ? Math.round(totalOrders/staffList.length) : 0;
@@ -193,7 +215,21 @@ export const StaffAnalysisPage: React.FC = () => {
   return (
     <div>
       <Card size="small" style={{marginBottom:12}}>
-        <Space><span style={{fontWeight:600,fontSize:15}}><TeamOutlined/> 制单员分析</span><Tag color="blue">{staffList.length} 人</Tag><Tag color="green">基于 {monthCount} 个月数据</Tag></Space>
+        <Space>
+          <span style={{fontWeight:600,fontSize:15}}><TeamOutlined/> 制单员分析</span>
+          <Select
+            size="small"
+            style={{ width: 150 }}
+            value={selectedYear}
+            onChange={v => setSelectedYear(v)}
+            options={availableYears.map(y => ({
+              label: `${y}年 (${dataSets.filter(ds => (ds.name || '').startsWith(y)).reduce((s, ds) => s + ds.records.length, 0)}条)`,
+              value: y
+            }))}
+          />
+          <Tag color="blue">{staffList.length} 人</Tag>
+          <Tag color="green">基于 {monthCount} 个月数据</Tag>
+        </Space>
       </Card>
 
       <Row gutter={[12,12]} style={{marginBottom:12}}>

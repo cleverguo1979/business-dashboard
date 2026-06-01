@@ -1,7 +1,7 @@
 /**
  * 标准化业务报关单 - 跨月度横向对比，X轴固定1-12月
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, Row, Col, Tag, Space, Empty, Select, Alert, Table, Progress } from 'antd';
 import { BarChartOutlined, ClockCircleOutlined, AlertOutlined, ExportOutlined, ImportOutlined, SafetyOutlined, RiseOutlined, WarningOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
@@ -62,10 +62,32 @@ function makeTimeChart(series: any[]): EChartsOption {
 export const OverviewPage: React.FC = () => {
   const dataSets = useDataStore(s => s.dataSets);
   const [selectedEntrust, setSelectedEntrust] = useState('');
+  const [selectedYear, setSelectedYear] = useState<string>('');
+
+  const availableYears = useMemo(() => {
+    const years = new Set<string>();
+    for (const ds of dataSets) {
+      const y = (ds.name || '').substring(0, 4);
+      if (/^\d{4}$/.test(y)) years.add(y);
+    }
+    return [...years].sort();
+  }, [dataSets]);
+
+  useEffect(() => {
+    if (availableYears.length > 0 && !selectedYear) {
+      setSelectedYear(availableYears[availableYears.length - 1]);
+    }
+  }, [availableYears, selectedYear]);
+
+  // 按年份筛选数据集
+  const filteredDataSets = useMemo(() =>
+    selectedYear ? dataSets.filter(ds => (ds.name || '').startsWith(selectedYear)) : dataSets,
+    [dataSets, selectedYear]
+  );
 
   const monthSlots = useMemo((): MonthSlot[] => {
     const slots: MonthSlot[] = Array.from({length:12}, ()=>emptySlot());
-    for(const ds of dataSets){
+    for(const ds of filteredDataSets){
       const month = extractMonth(ds.name); if(month===null||month<1||month>12) continue;
       const s = slots[month-1]; s.hasData = true;
       const entrustCounts = new Map<string,number>();
@@ -92,7 +114,7 @@ export const OverviewPage: React.FC = () => {
       s.entrustCounts = entrustCounts;
     }
     return slots;
-  }, [dataSets]);
+  }, [filteredDataSets]);
 
   const hasData = monthSlots.some(s=>s.hasData);
   const allEntrusts = useMemo(()=>{ const set=new Set<string>(); monthSlots.forEach(s=>s.entrustCounts.forEach((_,k)=>set.add(k))); return [...set].sort(); },[monthSlots]);
@@ -190,7 +212,20 @@ export const OverviewPage: React.FC = () => {
   return (
     <div>
       <Card size="small" style={{marginBottom:12}}>
-        <Space><span style={{fontWeight:600,fontSize:15}}>标准化业务报关单 月度横向对比</span><Tag color="blue">{dataSets.length} 个月份</Tag></Space>
+        <Space>
+          <span style={{fontWeight:600,fontSize:15}}>标准化业务报关单 月度横向对比</span>
+          <Select
+            size="small"
+            style={{ width: 150 }}
+            value={selectedYear}
+            onChange={v => setSelectedYear(v)}
+            options={availableYears.map(y => ({
+              label: `${y}年 (${dataSets.filter(ds => (ds.name || '').startsWith(y)).reduce((s, ds) => s + ds.records.length, 0)}条)`,
+              value: y
+            }))}
+          />
+          <Tag color="blue">{filteredDataSets.length} 个月份</Tag>
+        </Space>
       </Card>
 
       <Card title={<Space><BarChartOutlined/>标准化业务月度总量</Space>} size="small" style={{marginBottom:12}}>

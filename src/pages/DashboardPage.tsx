@@ -2,7 +2,7 @@
  * 标准化业务数据看板
  */
 import React, { useMemo, useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Table, Select, Tag, Space, Empty, Button, Spin, Radio, Tooltip, message } from 'antd';
+import { Card, Row, Col, Table, Select, Tag, Space, Empty, Button, Spin, Radio, Tooltip, message, Modal, Segmented } from 'antd';
 import {
   ClockCircleOutlined, ThunderboltOutlined, BarChartOutlined,
   WarningOutlined, ReloadOutlined, FileTextOutlined, AlertOutlined,
@@ -14,10 +14,11 @@ import { useDataStore } from '../store/dataStore';
 import { useDimensionStore } from '../store/dimensionStore';
 import { usePreprocessStore } from '../store/preprocessStore';
 import { decryptCSV, getPassphrase } from '../utils/decrypt';
+import type { TimeDimension } from '../types';
 import {
   preprocessedToHourly, preprocessedToDailyHourly,
   preprocessedToTimeRanges, preprocessedToConcurrency,
-  ACCEPTANCE_RANGES, DOCPREP_RANGES,
+  ACCEPTANCE_RANGES, DOCPREP_RANGES, parseTime,
 } from '../utils/orderAnalyzer';
 
 const C = ['#1677ff', '#52c41a', '#fa8c16', '#eb2f96', '#722ed1', '#13c2c2', '#f5222d'];
@@ -67,10 +68,17 @@ const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
   };
   return getMonth(a) - getMonth(b);
 }), [dataSets]);
-  const { pre, computing, compute } = usePreprocessStore();
-  const allRecords = currentDataSet?.records || [];
 
-  useEffect(() => { if (allRecords.length > 0) { usePreprocessStore.getState().reset(); compute(allRecords); } }, [allRecords]);
+  const availableYears = useMemo(() => {
+    const years = new Set<string>();
+    for (const ds of dataSets) {
+      const y = (ds.name || '').substring(0, 4);
+      if (/^\d{4}$/.test(y)) years.add(y);
+    }
+    return [...years].sort();
+  }, [dataSets]);
+
+  const { pre, computing, compute } = usePreprocessStore();
 
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -78,15 +86,37 @@ const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
   const [selectedDate, setSelectedDate] = useState('');
   const [after17Mode, setAfter17Mode] = useState<'all' | 'daily'>('all');
   const [after17Date, setAfter17Date] = useState('');
-  const [th, setTh] = useState(5);
-  const [wm, setWm] = useState(5);
+  const [th, setTh] = useState(30);
+  const [wm, setWm] = useState(3);
+  const [after17ModalOpen, setAfter17ModalOpen] = useState(false);
+  const [after17ModalTitle, setAfter17ModalTitle] = useState('');
+  const [after17ModalData, setAfter17ModalData] = useState<{ name: string; count: number }[]>([]);
+  const [timeDimension, setTimeDimension] = useState<TimeDimension>('monthly');
+  const [selectedYear, setSelectedYear] = useState<string>('');
+
+  const yearDataSets = useMemo(() =>
+    dataSets.filter(ds => (ds.name || '').startsWith(selectedYear)),
+    [dataSets, selectedYear]
+  );
+
+  const allRecords = useMemo(() => {
+    if (timeDimension === 'yearly') {
+      if (!selectedYear) return [];
+      return dataSets
+        .filter(ds => (ds.name || '').startsWith(selectedYear))
+        .flatMap(ds => ds.records);
+    }
+    return currentDataSet?.records || [];
+  }, [timeDimension, selectedYear, currentDataSet, dataSets]);
+
+  useEffect(() => { if (allRecords.length > 0) { usePreprocessStore.getState().reset(); compute(allRecords); } }, [allRecords]);
 
   const handleLoad = React.useCallback(async () => {
     setLoading(true);
     setProgress(0);
     try {
       const base = import.meta.env.BASE_URL;
-      const availableFiles = ['数据2026-04.csv','数据2026-05.csv'];
+      const availableFiles = ['数据2026-01.csv','数据2026-02.csv','数据2026-03.csv','数据2026-04.csv','数据2026-05.csv'];
       const year = '2026';
       const pass = getPassphrase();
 
@@ -148,6 +178,39 @@ const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
   }, [importData, createDimensionsFromColumns]);
   useEffect(() => { if (pre && pre.availableDates.length && !selectedDate) setSelectedDate(pre.availableDates[pre.availableDates.length - 1]); }, [pre, selectedDate]);
   useEffect(() => { if (pre && pre.after17AvailableDates.length && !after17Date) setAfter17Date(pre.after17AvailableDates[pre.after17AvailableDates.length - 1]); }, [pre, after17Date]);
+  useEffect(() => { if (availableYears.length > 0 && !selectedYear) setSelectedYear(availableYears[availableYears.length - 1]); }, [availableYears, selectedYear]);
+
+  // 17:00后图表点击 → 展示委托企业分布
+  const handleAfter17ChartClick = React.useCallback((params: any) => {
+    if (!pre) return;
+    const hour = String(params.name?.replace(':00', '') || '').padStart(2, '0');
+    // 从 after17Records 筛选该小时（及按日模式下该日期）的记录
+    const matched = pre.after17Records.filter(r => {
+      const t = parseTime(r['业务下单时间']);
+      if (!t) return false;
+      if (t.getHours().toString().padStart(2, '0') !== hour) return false;
+      if (after17Mode === 'daily' && after17Date) {
+        const d = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+        return d === after17Date;
+      }
+      return true;
+    });
+    // 按委托企业聚合
+    const entrustMap = new Map<string, number>();
+    matched.forEach(r => {
+      const e = r['委托企业'] || '(空)';
+      entrustMap.set(e, (entrustMap.get(e) || 0) + 1);
+    });
+    const data = [...entrustMap.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+    const title = after17Mode === 'daily' && after17Date
+      ? `${after17Date} ${hour}:00`
+      : `${hour}:00`;
+    setAfter17ModalTitle(title);
+    setAfter17ModalData(data);
+    setAfter17ModalOpen(true);
+  }, [pre, after17Mode, after17Date]);
 
   const ex = false;
   const total = pre?.total || 0;
@@ -217,7 +280,8 @@ const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
 
   const entrustUniqueRank = useMemo(() => pre?.entrustUniqueBizRank?.slice(0, 20) || [], [pre]);
 
-  if (!currentDataSet) {
+  const hasData = timeDimension === 'yearly' ? yearDataSets.length > 0 : !!currentDataSet;
+  if (!hasData) {
     if (loading) {
       return <div style={{ textAlign: 'center', marginTop: 150 }}>
         <div style={{ display: 'inline-block', width: 48, height: 48, border: '4px solid #e8e8e8', borderTopColor: '#1677ff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
@@ -225,7 +289,7 @@ const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
         <p style={{ color: '#1677ff', marginTop: 20, fontSize: 15, fontWeight: 500 }}>正在下载并解密数据...</p>
         <div style={{ width: 280, height: 8, background: '#e8e8e8', borderRadius: 4, margin: '16px auto', overflow: 'hidden' }}><div style={{ width: progress + '%', height: '100%', background: 'linear-gradient(90deg, #1677ff, #52c41a)', borderRadius: 4, transition: 'width 0.3s' }} /></div>
         <p style={{ color: '#1677ff', fontSize: 18, fontWeight: 700 }}>{progress}%</p>
-        <p style={{ color: '#999', fontSize: 12 }}>加密数据 4月+5月约 21MB</p>
+        <p style={{ color: '#999', fontSize: 12 }}>加密数据 1-5月约 45MB</p>
       </div>;
     }
     return <div style={{ textAlign: 'center', marginTop: 100 }}><Empty description="暂无数据" image={Empty.PRESENTED_IMAGE_SIMPLE} /><Button type="primary" size="large" icon={<ReloadOutlined />} onClick={handleLoad}>一键加载加密报表</Button></div>;
@@ -238,71 +302,158 @@ const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
     <div>
       <Card size="small" style={{ marginBottom: 12 }}>
         <Row justify="space-between" align="middle">
-          <Col><Space><span style={{ fontWeight: 600, fontSize: 15 }}>标准化业务数据看板</span><Select size="small" style={{ width: 260 }} value={currentDataSetId} onChange={v => setCurrentDataSet(v)} options={sortedDataSets.map(ds => ({ label: `${ds.name} (${ds.records.length}条)`, value: ds.id }))} /></Space></Col>
+          <Col>
+            <Space>
+              <span style={{ fontWeight: 600, fontSize: 15 }}>标准化业务数据看板</span>
+              <Segmented
+                size="small"
+                value={timeDimension}
+                onChange={(val) => {
+                  setTimeDimension(val as TimeDimension);
+                  usePreprocessStore.getState().reset();
+                }}
+                options={[
+                  { label: '月度', value: 'monthly' },
+                  { label: '年度', value: 'yearly' },
+                ]}
+              />
+              {timeDimension === 'monthly' ? (
+                <Select size="small" style={{ width: 260 }} value={currentDataSetId} onChange={v => setCurrentDataSet(v)} options={sortedDataSets.map(ds => ({ label: `${ds.name} (${ds.records.length}条)`, value: ds.id }))} />
+              ) : (
+                <Select size="small" style={{ width: 180 }} value={selectedYear} onChange={v => setSelectedYear(v)} options={availableYears.map(y => ({ label: `${y}年 (${dataSets.filter(ds => (ds.name || '').startsWith(y)).reduce((s, ds) => s + ds.records.length, 0)}条)`, value: y }))} />
+              )}
+            </Space>
+          </Col>
           <Col><span style={{ fontSize: 13, color: '#666' }}>{pre.dateRange.start} ~ {pre.dateRange.end}</span></Col>
         </Row>
       </Card>
 
+      {timeDimension === 'yearly' && (
+        <div style={{ marginBottom: 8, fontSize: 12, color: '#888' }}>
+          已加载月份：{yearDataSets.map(d => d.name).join('、') || '无'}
+          {yearDataSets.length > 0 && yearDataSets.length < 12 && (
+            <Tag color="warning" style={{ marginLeft: 8 }}>缺失 {12 - yearDataSets.length} 个月</Tag>
+          )}
+        </div>
+      )}
+
       <Row gutter={[8, 8]} style={{ marginBottom: 12 }}>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: CARD_H }}><Statistic title={<span><BarChartOutlined /> 标准化业务报关单总数</span>} value={total} suffix="单" valueStyle={{ color: '#1677ff', fontWeight: 700, fontSize: 20 }} /></Card></Col>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: CARD_H }}><Statistic title="日期范围" value={`${pre.dateRange.start} ~ ${pre.dateRange.end}`} valueStyle={{ fontSize: 12 }} /></Card></Col>
+        {/* 1. 报关单总数 */}
         <Col xs={12} sm={8} md={6} lg={3} xl={3}>
           <Card size="small" style={{ height: CARD_H }}>
-            <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>
+            <div style={{ fontSize: 11, color: '#666', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <BarChartOutlined /> 标准化业务报关单总数
+            </div>
+            <div style={{ color: '#1677ff', fontWeight: 700, fontSize: 20, lineHeight: 1.2 }}>
+              {total.toLocaleString()} <span style={{ fontSize: 11, fontWeight: 400 }}>单</span>
+            </div>
+          </Card>
+        </Col>
+        {/* 2. 日期范围 */}
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}>
+          <Card size="small" style={{ height: CARD_H }}>
+            <div style={{ fontSize: 11, color: '#666', marginBottom: 2 }}>日期范围</div>
+            <Tooltip title={`${pre.dateRange.start} ~ ${pre.dateRange.end}`}>
+              <div style={{ fontSize: 12, fontWeight: 500, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {pre.dateRange.start} ~ {pre.dateRange.end}
+              </div>
+            </Tooltip>
+          </Card>
+        </Col>
+        {/* 3. 平均接单耗时 */}
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}>
+          <Card size="small" style={{ height: CARD_H }}>
+            <div style={{ fontSize: 11, color: '#666', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               <ClockCircleOutlined /> 平均接单耗时 <Tooltip title="「全量」全部数据平均值；「剔除异常」排除跨日制单等异常数据后的平均值"><span style={{ fontSize: 10, color: '#bbb', cursor: 'help' }}>ⓘ</span></Tooltip>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: 10, color: '#999' }}>全量</div>
-                <div style={{ color: acceptAll < 120 ? '#52c41a' : '#fa8c16', fontWeight: 700, fontSize: 20 }}>{fmtSec(acceptAll)}</div>
+                <div style={{ fontSize: 9, color: '#999' }}>全量</div>
+                <div style={{ color: acceptAll < 120 ? '#52c41a' : '#fa8c16', fontWeight: 700, fontSize: 18, lineHeight: 1.2 }}>{fmtSec(acceptAll)}</div>
               </div>
-              <div style={{ color: '#52c41a', fontSize: 16, padding: '0 4px' }}>→</div>
+              <div style={{ color: '#52c41a', fontSize: 14, padding: '0 2px' }}>→</div>
               <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: 10, color: '#999' }}>剔除异常</div>
-                <div style={{ color: '#52c41a', fontWeight: 700, fontSize: 20 }}>{fmtSec(acceptClean)}</div>
+                <div style={{ fontSize: 9, color: '#999' }}>剔除异常</div>
+                <div style={{ color: '#52c41a', fontWeight: 700, fontSize: 18, lineHeight: 1.2 }}>{fmtSec(acceptClean)}</div>
               </div>
             </div>
           </Card>
         </Col>
+        {/* 4. 平均制单时长 */}
         <Col xs={12} sm={8} md={6} lg={3} xl={3}>
           <Card size="small" style={{ height: CARD_H }}>
-            <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>
+            <div style={{ fontSize: 11, color: '#666', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               <FileTextOutlined /> 平均制单时长 <Tooltip title="「全量」全部数据平均值；「剔除异常」排除跨日制单等异常数据后的平均值"><span style={{ fontSize: 10, color: '#bbb', cursor: 'help' }}>ⓘ</span></Tooltip>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: 10, color: '#999' }}>全量</div>
-                <div style={{ color: docAll < 600 ? '#52c41a' : '#fa8c16', fontWeight: 700, fontSize: 20 }}>{fmtSec(docAll)}</div>
+                <div style={{ fontSize: 9, color: '#999' }}>全量</div>
+                <div style={{ color: docAll < 600 ? '#52c41a' : '#fa8c16', fontWeight: 700, fontSize: 18, lineHeight: 1.2 }}>{fmtSec(docAll)}</div>
               </div>
-              <div style={{ color: '#52c41a', fontSize: 16, padding: '0 4px' }}>→</div>
+              <div style={{ color: '#52c41a', fontSize: 14, padding: '0 2px' }}>→</div>
               <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: 10, color: '#999' }}>剔除异常</div>
-                <div style={{ color: '#52c41a', fontWeight: 700, fontSize: 20 }}>{fmtSec(docClean)}</div>
+                <div style={{ fontSize: 9, color: '#999' }}>剔除异常</div>
+                <div style={{ color: '#52c41a', fontWeight: 700, fontSize: 18, lineHeight: 1.2 }}>{fmtSec(docClean)}</div>
               </div>
             </div>
           </Card>
         </Col>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: CARD_H }}><Statistic title={<span><ThunderboltOutlined /> 高峰 {peakInfo.hour}</span>} value={`${peakInfo.count} 单 (${pct(peakInfo.count, total)}%)`} valueStyle={{ color: '#f5222d', fontWeight: 700, fontSize: 18 }} /></Card></Col>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: CARD_H, background: '#fff7e6' }}><Statistic title={<span><AlertOutlined style={{ color: '#fa8c16' }} /> 跨日制单</span>} value={`${pre.crossDateCount} 单 (${pct(pre.crossDateCount, total)}%)`} valueStyle={{ color: '#fa8c16', fontWeight: 600, fontSize: 18 }} /></Card></Col>
-        <Col xs={12} sm={8} md={6} lg={3} xl={3}><Card size="small" style={{ height: CARD_H, background: '#fff1f0' }}><Statistic title={<span><WarningOutlined style={{ color: '#f5222d' }} /> 17:00后</span>} value={`${pre.after17Count} 单 (${pct(pre.after17Count, total)}%)`} valueStyle={{ color: '#f5222d', fontWeight: 600, fontSize: 18 }} /></Card></Col>
+        {/* 5. 高峰 */}
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}>
+          <Card size="small" style={{ height: CARD_H }}>
+            <div style={{ fontSize: 11, color: '#666', marginBottom: 2 }}>
+              <ThunderboltOutlined /> 高峰 {peakInfo.hour}
+            </div>
+            <div style={{ color: '#f5222d', fontWeight: 700, fontSize: 20, lineHeight: 1.2 }}>
+              {peakInfo.count} <span style={{ fontSize: 11, fontWeight: 400 }}>单</span>
+            </div>
+            <div style={{ fontSize: 11, color: '#f5222d', opacity: 0.85 }}>{pct(peakInfo.count, total)}%</div>
+          </Card>
+        </Col>
+        {/* 6. 跨日制单 */}
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}>
+          <Card size="small" style={{ height: CARD_H, background: '#fff7e6' }}>
+            <div style={{ fontSize: 11, color: '#666', marginBottom: 2 }}>
+              <AlertOutlined style={{ color: '#fa8c16' }} /> 跨日制单
+            </div>
+            <div style={{ color: '#fa8c16', fontWeight: 700, fontSize: 20, lineHeight: 1.2 }}>
+              {pre.crossDateCount} <span style={{ fontSize: 11, fontWeight: 400 }}>单</span>
+            </div>
+            <div style={{ fontSize: 11, color: '#fa8c16', opacity: 0.85 }}>{pct(pre.crossDateCount, total)}%</div>
+          </Card>
+        </Col>
+        {/* 7. 17:00后 */}
+        <Col xs={12} sm={8} md={6} lg={3} xl={3}>
+          <Card size="small" style={{ height: CARD_H, background: '#fff1f0' }}>
+            <div style={{ fontSize: 11, color: '#666', marginBottom: 2 }}>
+              <WarningOutlined style={{ color: '#f5222d' }} /> 17:00后
+            </div>
+            <div style={{ color: '#f5222d', fontWeight: 700, fontSize: 20, lineHeight: 1.2 }}>
+              {pre.after17Count} <span style={{ fontSize: 11, fontWeight: 400 }}>单</span>
+            </div>
+            <div style={{ fontSize: 11, color: '#f5222d', opacity: 0.85 }}>{pct(pre.after17Count, total)}%</div>
+          </Card>
+        </Col>
       </Row>
 
       {/* 饼图 + 委托企业去重排行 + 问询 */}
       <Row gutter={[12,12]} style={{ marginBottom: 12 }}>
         <Col xs={24} lg={8}>
-          <Card title="进出口分布" size="small" style={{ height: 390 }}>
-            <ReactECharts option={pieOption} style={{ height: 340 }} />
+          <Card title="进出口分布" size="small" style={{ height: 540 }}>
+            <ReactECharts option={pieOption} style={{ height: 490 }} />
           </Card>
         </Col>
         <Col xs={24} lg={8}>
-          <Card title={<span style={{fontSize:13}}><TrophyOutlined style={{color:"#fa8c16",marginRight:4}}/>委托企业委托量TOP20</span>} size="small" style={{ height: 390 }}>
-            <Table dataSource={entrustUniqueRank} rowKey="name" size="small" pagination={{ pageSize: 10, size: 'small' }}
+          <Card title={<span style={{fontSize:13}}><TrophyOutlined style={{color:"#fa8c16",marginRight:4}}/>委托企业委托量TOP20</span>} size="small" style={{ height: 540 }}>
+            <Table dataSource={entrustUniqueRank} rowKey="name" size="small"
+              pagination={{ pageSize: 10, size: 'small' }}
               columns={[{ title: '#', width: 35, render: (_: any, __: any, i: number) => <Tag color={i < 3 ? 'gold' : 'default'}>{i + 1}</Tag> }, { title: '企业', dataIndex: 'name', ellipsis: true }, { title: '委托号', dataIndex: 'count', width: 75, sorter: (a: any, b: any) => a.count - b.count, defaultSortOrder: 'descend', render: (v: number) => <b>{v}</b> }]} />
           </Card>
         </Col>
         <Col xs={24} lg={8}>
-          <Card title={<Space><MessageOutlined style={{ color: '#722ed1' }} />问询TOP20</Space>} size="small" style={{ height: 390 }}>
-            <Table dataSource={inquiryRank.slice(0, 20)} rowKey="name" size="small" pagination={{ pageSize: 10, size: 'small' }}
+          <Card title={<Space><MessageOutlined style={{ color: '#722ed1' }} />问询TOP20</Space>} size="small" style={{ height: 540 }}>
+            <Table dataSource={inquiryRank.slice(0, 20)} rowKey="name" size="small"
+              pagination={{ pageSize: 10, size: 'small' }}
               columns={[{ title: '#', width: 35, render: (_: any, __: any, i: number) => <Tag color={i < 3 ? 'purple' : 'default'}>{i + 1}</Tag> }, { title: '企业', dataIndex: 'name', ellipsis: true }, { title: '问询', dataIndex: 'count', width: 80, sorter: (a: any, b: any) => a.count - b.count, defaultSortOrder: 'descend', render: (v: number) => <Tag color="purple">{v} 次</Tag> }]} />
           </Card>
         </Col>
@@ -363,7 +514,8 @@ const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
           <Card title={<Space><WarningOutlined style={{ color: '#f5222d' }} />17:00后下单 {pre.after17Count}单 ({pct(pre.after17Count, total)}%)</Space>}
             extra={<Space><Radio.Group value={after17Mode} onChange={e => setAfter17Mode(e.target.value)} optionType="button" buttonStyle="solid" size="small"><Radio.Button value="all">全部</Radio.Button><Radio.Button value="daily">按日</Radio.Button></Radio.Group>{after17Mode === 'daily' && <Select size="small" style={{ width: 130 }} value={after17Date} onChange={setAfter17Date} options={pre.after17AvailableDates.map(d => ({ label: d, value: d }))} />}</Space>}
             style={{ borderLeft: '3px solid #f5222d' }}>
-            <ReactECharts option={after17Chart} style={{ height: 250 }} />
+            <ReactECharts option={after17Chart} style={{ height: 235 }} onEvents={{ click: handleAfter17ChartClick }} />
+            <div style={{ textAlign: 'center', color: '#999', fontSize: 11, marginTop: 2 }}>💡 点击柱体查看委托企业明细</div>
           </Card>
         </Col>
         <Col xs={24} lg={12}>
@@ -377,6 +529,36 @@ const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
           </Card>
         </Col>
       </Row>
+
+      {/* 17:00后 点击柱状图 → 委托企业明细 */}
+      <Modal
+        title={<Space><WarningOutlined style={{ color: '#f5222d' }} />{after17ModalTitle} — 委托企业分布</Space>}
+        open={after17ModalOpen}
+        onCancel={() => setAfter17ModalOpen(false)}
+        footer={null}
+        width={600}
+        destroyOnClose
+      >
+        <div style={{ marginBottom: 8, color: '#666', fontSize: 13 }}>
+          共 <b style={{ color: '#f5222d' }}>{after17ModalData.reduce((s, d) => s + d.count, 0)}</b> 委托，
+          涉及 <b>{after17ModalData.length}</b> 家委托企业
+        </div>
+        <Table
+          dataSource={after17ModalData}
+          rowKey="name"
+          size="small"
+          pagination={{ pageSize: 10, size: 'small', showTotal: t => `共 ${t} 家` }}
+          columns={[
+            { title: '#', width: 50, render: (_: any, __: any, i: number) => <Tag color={i < 3 ? 'red' : 'default'}>{i + 1}</Tag> },
+            { title: '委托企业', dataIndex: 'name', ellipsis: true },
+            { title: '委托数', dataIndex: 'count', width: 80, sorter: (a: any, b: any) => a.count - b.count, defaultSortOrder: 'descend', render: (v: number) => <b style={{ color: '#f5222d' }}>{v}</b> },
+            { title: '占比', width: 70, render: (_: any, r: any) => {
+              const total = after17ModalData.reduce((s, d) => s + d.count, 0);
+              return <span>{total > 0 ? (r.count / total * 100).toFixed(1) : '0'}%</span>;
+            }},
+          ]}
+        />
+      </Modal>
     </div>
   );
 };
