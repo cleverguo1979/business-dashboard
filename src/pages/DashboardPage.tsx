@@ -338,14 +338,22 @@ const sortedDataSets = useMemo(() => [...dataSets].sort((a,b) => {
       )}
 
       <Row gutter={[8, 8]} style={{ marginBottom: 12 }}>
-        {/* 1. 报关单总数 */}
+        {/* 1. 报关单总数（含进出口拆分） */}
         <Col xs={12} sm={8} md={6} lg={3} xl={3}>
           <Card size="small" style={{ height: CARD_H }}>
-            <div style={{ fontSize: 11, color: '#666', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              <BarChartOutlined /> 标准化业务报关单总数
+            <div style={{ fontSize: 11, color: '#666', marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <BarChartOutlined /> 标准化业务报关单
             </div>
-            <div style={{ color: '#1677ff', fontWeight: 700, fontSize: 20, lineHeight: 1.2 }}>
-              {total.toLocaleString()} <span style={{ fontSize: 11, fontWeight: 400 }}>单</span>
+            <div style={{ color: '#1677ff', fontWeight: 700, fontSize: 19, lineHeight: 1.15 }}>
+              {total.toLocaleString()} <span style={{ fontSize: 10, fontWeight: 400 }}>单</span>
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 1 }}>
+              <span style={{ fontSize: 10, color: '#1677ff', whiteSpace: 'nowrap' }}>
+                ▪ 出口 {(pre?.expTotal || 0).toLocaleString()}
+              </span>
+              <span style={{ fontSize: 10, color: '#52c41a', whiteSpace: 'nowrap' }}>
+                ▪ 进口 {(pre?.impTotal || 0).toLocaleString()}
+              </span>
             </div>
           </Card>
         </Col>
