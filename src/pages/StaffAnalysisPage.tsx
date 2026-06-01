@@ -42,7 +42,7 @@ interface StaffProfile {
 export const StaffAnalysisPage: React.FC = () => {
   const dataSets = useDataStore(s => s.dataSets);
   const [selectedStaff, setSelectedStaff] = useState<string>('');
-  const [speedMode, setSpeedMode] = useState<'full'|'clean'>('full');
+  const [speedMode, setSpeedMode] = useState<'full'|'clean'>('clean');
   const [rankingPageSize, setRankingPageSize] = useState(20);
 
   const activeMonths = useMemo(() => {
