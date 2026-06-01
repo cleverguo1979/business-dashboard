@@ -146,16 +146,19 @@ export const StaffAnalysisPage: React.FC = () => {
   const selectedProfile = useMemo(()=>selectedStaff?staffProfiles.get(selectedStaff):null,[staffProfiles,selectedStaff]);
   const selectedMonthlyChart = useMemo(():EChartsOption => {
     if(!selectedProfile) return {};
-    const months = [...selectedProfile.monthly.entries()].sort((a,b)=>a[0]-b[0]);
+    // 固定1-12月X轴，从已加载月份中取值，无数据则为null（留空不连线）
+    const expData = ALL_MONTHS.map((_, i) => { const s = selectedProfile.monthly.get(i + 1); return s ? s.exp : null; });
+    const impData = ALL_MONTHS.map((_, i) => { const s = selectedProfile.monthly.get(i + 1); return s ? s.imp : null; });
+    const totalData = ALL_MONTHS.map((_, i) => { const s = selectedProfile.monthly.get(i + 1); return s ? s.total : null; });
     return {
       color:[C[0],C[1],C[3]], tooltip:{trigger:'axis'}, legend:{bottom:0},
       grid:{left:50,right:20,top:10,bottom:45},
-      xAxis:{type:'category',data:months.map(([m])=>ALL_MONTHS[m-1]),axisLabel:{fontSize:10}},
+      xAxis:{type:'category',data:ALL_MONTHS,axisLabel:{fontSize:10}},
       yAxis:{type:'value',name:'单量'},
       series:[
-        {name:'出口',type:'line',data:months.map(([,s])=>s.exp),smooth:true,symbol:'circle',label:{show:true,fontSize:10},markLine:{silent:true,symbol:'none',data:[{type:'average',name:'均值',label:{formatter:'均值:{c}',fontSize:10}}],lineStyle:{color:C[0],type:'dashed'}}},
-        {name:'进口',type:'line',data:months.map(([,s])=>s.imp),smooth:true,symbol:'diamond',label:{show:true,fontSize:10},markLine:{silent:true,symbol:'none',data:[{type:'average',name:'均值',label:{formatter:'均值:{c}',fontSize:10}}],lineStyle:{color:C[1],type:'dashed'}}},
-        {name:'报关单量',type:'line',data:months.map(([,s])=>s.total),smooth:true,symbol:'triangle',label:{show:true,fontSize:10,fontWeight:'bold'},lineStyle:{width:3}},
+        {name:'出口',type:'line',data:expData,connectNulls:false,smooth:true,symbol:'circle',label:{show:true,fontSize:10},markLine:{silent:true,symbol:'none',data:[{type:'average',name:'均值',label:{formatter:'均值:{c}',fontSize:10}}],lineStyle:{color:C[0],type:'dashed'}}},
+        {name:'进口',type:'line',data:impData,connectNulls:false,smooth:true,symbol:'diamond',label:{show:true,fontSize:10},markLine:{silent:true,symbol:'none',data:[{type:'average',name:'均值',label:{formatter:'均值:{c}',fontSize:10}}],lineStyle:{color:C[1],type:'dashed'}}},
+        {name:'报关单量',type:'line',data:totalData,connectNulls:false,smooth:true,symbol:'triangle',label:{show:true,fontSize:10,fontWeight:'bold'},lineStyle:{width:3}},
       ],
     };
   },[selectedProfile]);
@@ -315,7 +318,13 @@ export const StaffAnalysisPage: React.FC = () => {
                 ));
               })()}
             </Row>
-            <Table dataSource={[...(selectedProfile.monthly.entries())].sort((a,b)=>a[0]-b[0]).map(([m,ms],i)=>({_key:i,month:ALL_MONTHS[m-1],...ms,avgFull:ms.docPrepCount>0?fmtSec(ms.docPrepSum/ms.docPrepCount):'-',avgClean:ms.docPrepCleanCount>0?fmtSec(ms.docPrepCleanSum/ms.docPrepCleanCount):'-',monthNum:m}))} rowKey="_key" size="small" pagination={false} style={{marginTop:8}}
+            <Table dataSource={ALL_MONTHS.map((_, mIdx) => {
+                const m = mIdx + 1;
+                const ms = selectedProfile.monthly.get(m);
+                const empty: StaffMonthStats = { total:0,exp:0,imp:0,docPrepSum:0,docPrepCount:0,docPrepCleanSum:0,docPrepCleanCount:0,after17:0,crossDate:0,inquirySum:0 };
+                const d = ms || empty;
+                return {_key:mIdx,month:ALL_MONTHS[mIdx],...d,hasData:!!ms,avgFull:d.docPrepCount>0?fmtSec(d.docPrepSum/d.docPrepCount):'-',avgClean:d.docPrepCleanCount>0?fmtSec(d.docPrepCleanSum/d.docPrepCleanCount):'-',monthNum:m};
+              })} rowKey="_key" size="small" pagination={false} style={{marginTop:8}}
               columns={[
                 {title:'月份',dataIndex:'month',width:55},
                 {title:'报关单量',dataIndex:'total',width:60,render:(v:number)=><b>{v}</b>},
@@ -326,7 +335,7 @@ export const StaffAnalysisPage: React.FC = () => {
                 {title:'17点后',dataIndex:'after17',width:55},
                 {title:'跨日',dataIndex:'crossDate',width:50},
                 {title:'问询',dataIndex:'inquirySum',width:50},
-                {title:'人天',key:'ppd',width:65,render:(_:any,r:any)=>{const wd=getWorkingDays(r.monthNum);return <span style={{fontWeight:500}}>{(r.total/wd).toFixed(1)}<span style={{fontSize:10,color:'#999'}}> 票/天</span></span>;}},
+                {title:'人天',key:'ppd',width:65,render:(_:any,r:any)=>{if(!r.hasData)return'-';const wd=getWorkingDays(r.monthNum);return <span style={{fontWeight:500}}>{(r.total/wd).toFixed(1)}<span style={{fontSize:10,color:'#999'}}> 票/天</span></span>;}},
               ]}
             />
           </div>
