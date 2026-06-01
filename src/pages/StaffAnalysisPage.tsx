@@ -14,6 +14,17 @@ const C = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96'
 function parseTime(s: string): Date|null { if(!s)return null; const d=new Date(s.replace(' ','T')); return isNaN(d.getTime())?null:d; }
 function fmtSec(s: number): string { if(s<60)return `${Math.round(s)}秒`; if(s<3600)return `${(s/60).toFixed(1)}分`; return `${(s/3600).toFixed(1)}时`; }
 function pct(v: number, t: number): string { return t>0?(v/t*100).toFixed(1):'0'; }
+/** 计算指定月份的工作日天数（不含周六日） */
+function getWorkingDays(month: number, year: number = 2026): number {
+  const daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31];
+  let count = 0;
+  for (let day = 1; day <= daysInMonth[month - 1]; day++) {
+    const dow = new Date(year, month - 1, day).getDay();
+    if (dow !== 0 && dow !== 6) count++;
+  }
+  return count;
+}
+
 function extractMonth(name: string): number|null {
   const m=name.match(/(\d{4})[-/](\d{1,2})/); if(m)return parseInt(m[2],10);
   const m2=name.match(/(\d{1,2})月/); if(m2)return parseInt(m2[1],10);
@@ -249,6 +260,13 @@ export const StaffAnalysisPage: React.FC = () => {
                   {icon:<ClockCircleOutlined/>,label:'制单时效(剔除)',value:avgClean,color:C[1]},
                   {icon:<AlertOutlined/>,label:'17点后',value:`${s.after17Total} 单`,sub:`${pct(s.after17Total,s.total)}%`,color:'#f5222d'},
                   {icon:<AlertOutlined/>,label:'跨日',value:`${s.crossTotal} 单`,sub:`${pct(s.crossTotal,s.total)}%`,color:'#fa8c16'},
+                  (()=>{
+                    const months = [...s.monthly.keys()];
+                    let totalWD = 0;
+                    for(const m of months) totalWD += getWorkingDays(m);
+                    const ppd = totalWD>0 ? (s.total/totalWD).toFixed(1) : '-';
+                    return {icon:<TeamOutlined/>,label:'人天',value:ppd,unit:'票/天',color:C[5]};
+                  })(),
                 ];
                 return cards.map((c,i)=>(
                   <Col key={i} xs={6} sm={3} style={{flex:'1 1 0'}}>
@@ -261,7 +279,7 @@ export const StaffAnalysisPage: React.FC = () => {
                 ));
               })()}
             </Row>
-            <Table dataSource={[...(selectedProfile.monthly.entries())].sort((a,b)=>a[0]-b[0]).map(([m,ms],i)=>({_key:i,month:ALL_MONTHS[m-1],...ms,avgFull:ms.docPrepCount>0?fmtSec(ms.docPrepSum/ms.docPrepCount):'-',avgClean:ms.docPrepCleanCount>0?fmtSec(ms.docPrepCleanSum/ms.docPrepCleanCount):'-'}))} rowKey="_key" size="small" pagination={false} style={{marginTop:8}}
+            <Table dataSource={[...(selectedProfile.monthly.entries())].sort((a,b)=>a[0]-b[0]).map(([m,ms],i)=>({_key:i,month:ALL_MONTHS[m-1],...ms,avgFull:ms.docPrepCount>0?fmtSec(ms.docPrepSum/ms.docPrepCount):'-',avgClean:ms.docPrepCleanCount>0?fmtSec(ms.docPrepCleanSum/ms.docPrepCleanCount):'-',monthNum:m}))} rowKey="_key" size="small" pagination={false} style={{marginTop:8}}
               columns={[
                 {title:'月份',dataIndex:'month',width:55},
                 {title:'报关单量',dataIndex:'total',width:60,render:(v:number)=><b>{v}</b>},
@@ -272,6 +290,7 @@ export const StaffAnalysisPage: React.FC = () => {
                 {title:'17点后',dataIndex:'after17',width:55},
                 {title:'跨日',dataIndex:'crossDate',width:50},
                 {title:'问询',dataIndex:'inquirySum',width:50},
+                {title:'人天',key:'ppd',width:65,render:(_:any,r:any)=>{const wd=getWorkingDays(r.monthNum);return <span style={{fontWeight:500}}>{(r.total/wd).toFixed(1)}<span style={{fontSize:10,color:'#999'}}> 票/天</span></span>;}},
               ]}
             />
           </div>
