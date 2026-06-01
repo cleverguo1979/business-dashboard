@@ -309,7 +309,7 @@ export const StaffAnalysisPage: React.FC = () => {
                     <Card size="small" style={{height:78}} bodyStyle={{padding:'8px 6px',textAlign:'center'}}>
                       <div style={{fontSize:11,color:'#999',marginBottom:2}}><span style={{color:c.color,marginRight:3}}>{c.icon}</span>{c.label}</div>
                       <div style={{fontSize:17,fontWeight:700,color:c.color}}>{c.value}{c.unit||''}</div>
-                      {c.sub && <div style={{fontSize:10,color:'#aaa',marginTop:1}}>{c.sub}</div>}
+                      {(c as any).sub && <div style={{fontSize:10,color:'#aaa',marginTop:1}}>{(c as any).sub}</div>}
                     </Card>
                   </Col>
                 ));
