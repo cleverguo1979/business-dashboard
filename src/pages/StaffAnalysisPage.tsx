@@ -155,7 +155,7 @@ export const StaffAnalysisPage: React.FC = () => {
     series:[{type:'bar',data:workloadDist.counts,itemStyle:{borderRadius:[4,4,0,0]},label:{show:true,position:'top'}}],
   }),[workloadDist]);
 
-  const speedBins = [{label:'<5分',max:300},{label:'5-15分',max:900},{label:'15-30分',max:1800},{label:'30分-1时',max:3600},{label:'1-2时',max:7200},{label:'2时+',max:Infinity}];
+  const speedBins = [{label:'<5分',max:300},{label:'5-15分',max:900},{label:'15-30分',max:1800},{label:'30分-1时',max:3600},{label:'1-2时',max:7200},{label:'2-3时',max:10800},{label:'3-4时',max:14400},{label:'4时+',max:Infinity}];
   const speedDist = useMemo(()=>{
     const counts=new Array(speedBins.length).fill(0);
     for(const s of staffList){
