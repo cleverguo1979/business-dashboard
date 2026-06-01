@@ -43,6 +43,8 @@ export interface CustomerRiskProfile {
   crossDateRatio: number;
   /** 平均每单问询次数 */
   avgInquiry: number;
+  /** 问询总次数 */
+  totalInquiry: number;
   /** 平均制单时长（分钟） */
   avgDocPrepMin: number;
   /** 综合风险评分 0-100 */
@@ -184,6 +186,7 @@ export function buildCustomerProfiles(
       after17Ratio,
       crossDateRatio,
       avgInquiry,
+      totalInquiry,
       avgDocPrepMin,
       riskScore,
       riskLevel,

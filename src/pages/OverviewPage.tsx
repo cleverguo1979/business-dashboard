@@ -354,23 +354,27 @@ export const OverviewPage: React.FC = () => {
                 render: (v: number) => (
                   <Tag color={v > 0.3 ? 'error' : v > 0.15 ? 'warning' : 'success'}>{fmtPct(v)}</Tag>
                 ),
+                sorter: (a: CustomerRiskProfile, b: CustomerRiskProfile) => a.after17Ratio - b.after17Ratio,
               },
               {
                 title: '跨日占比', dataIndex: 'crossDateRatio', width: 84, align: 'center',
                 render: (v: number) => (
                   <Tag color={v > 0.1 ? 'error' : v > 0.05 ? 'warning' : 'success'}>{fmtPct(v)}</Tag>
                 ),
+                sorter: (a: CustomerRiskProfile, b: CustomerRiskProfile) => a.crossDateRatio - b.crossDateRatio,
               },
               {
-                title: '均问询', dataIndex: 'avgInquiry', width: 70, align: 'center',
+                title: '问询次数', dataIndex: 'totalInquiry', width: 80, align: 'center',
                 render: (v: number) => {
-                  const color = v > 2 ? '#cf1322' : v > 1 ? '#d48806' : '#389e0d';
-                  return <span style={{ color, fontWeight: 500 }}>{v.toFixed(1)}次</span>;
+                  const color = v > 20 ? '#cf1322' : v > 10 ? '#d48806' : '#389e0d';
+                  return <span style={{ color, fontWeight: 500 }}>{v}次</span>;
                 },
+                sorter: (a: CustomerRiskProfile, b: CustomerRiskProfile) => a.totalInquiry - b.totalInquiry,
               },
               {
                 title: '制单时长', dataIndex: 'avgDocPrepMin', width: 80, align: 'center',
                 render: (v: number) => <span>{fmtMin(v)}</span>,
+                sorter: (a: CustomerRiskProfile, b: CustomerRiskProfile) => a.avgDocPrepMin - b.avgDocPrepMin,
               },
               {
                 title: '风险评分', dataIndex: 'riskScore', width: 140, align: 'center',

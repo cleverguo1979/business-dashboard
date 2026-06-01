@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.2.5",
+    "@rolldown/binding-darwin-arm64": "^1.0.3",
     "ali-oss": "^6.23.0",
     "antd": "^6.4.3",
     "dayjs": "^1.11.21",
